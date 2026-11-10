@@ -1,0 +1,13 @@
+# Dependencies & Virtual Env
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+
+# Secrets (NEVER commit .env to GitHub!)
+.env
+.env.*
+
+# Build artifacts
+dist/
+*.log
