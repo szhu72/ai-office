@@ -736,6 +736,65 @@ def save_avatar():
     return jsonify({"ok": True, "avatars": existing})
 
 
+@app.post("/api/upload-avatar")
+def upload_avatar():
+    """Uploads an image or animated GIF avatar and saves it as a static asset."""
+    import base64
+    agent_id = request.form.get("agentId") or "agent"
+    file_obj = request.files.get("file")
+    data_url = request.form.get("dataUrl")
+    filename = request.form.get("filename") or ""
+
+    ext = ".gif"
+    content_bytes = b""
+
+    if file_obj:
+        orig_name = file_obj.filename or "avatar.gif"
+        ext = Path(orig_name).suffix.lower() or ".gif"
+        content_bytes = file_obj.read()
+    elif data_url and data_url.startswith("data:"):
+        match = re.match(r"^data:image\/([a-zA-Z0-9+]+);base64,(.+)$", data_url)
+        if match:
+            raw_ext = match.group(1).lower()
+            ext = ".gif" if "gif" in raw_ext else f".{raw_ext}"
+            content_bytes = base64.b64decode(match.group(2))
+    elif not content_bytes:
+        data = request.get_json(silent=True) or {}
+        agent_id = data.get("agentId") or agent_id
+        data_url = data.get("dataUrl") or ""
+        if data_url.startswith("data:"):
+            match = re.match(r"^data:image\/([a-zA-Z0-9+]+);base64,(.+)$", data_url)
+            if match:
+                raw_ext = match.group(1).lower()
+                ext = ".gif" if "gif" in raw_ext else f".{raw_ext}"
+                content_bytes = base64.b64decode(match.group(2))
+
+    if not content_bytes:
+        return jsonify({"error": "No file or dataUrl provided"}), 400
+
+    clean_id = re.sub(r"[^a-zA-Z0-9_-]", "", agent_id) or "avatar"
+    timestamp = int(time.time())
+    final_filename = f"{clean_id}_{timestamp}{ext}"
+
+    target_dirs = [
+        BASE_DIR / "public" / "avatars",
+        BASE_DIR / "docs" / "avatars",
+        DIST_DIR / "avatars",
+    ]
+    for d in target_dirs:
+        d.mkdir(parents=True, exist_ok=True)
+        (d / final_filename).write_bytes(content_bytes)
+
+    relative_url = f"./avatars/{final_filename}"
+    return jsonify({
+        "ok": True,
+        "url": relative_url,
+        "filename": final_filename,
+        "isGif": ext == ".gif",
+        "sizeBytes": len(content_bytes),
+    })
+
+
 @app.get("/api/hr-roster")
 def get_hr_roster():
     md_text = read_latest_hr_roster_markdown()
@@ -824,6 +883,10 @@ def save_agent_profile():
 def serve_spa(path: str):
     if path.startswith("api/"):
         return jsonify({"error": "Not found"}), 404
+    # Check public folder (e.g. avatars, mimi-reference.png)
+    pub_file = (BASE_DIR / "public") / path
+    if path and pub_file.exists() and pub_file.is_file():
+        return send_from_directory(BASE_DIR / "public", path)
     if DIST_DIR.exists():
         candidate = DIST_DIR / path
         if path and candidate.exists() and candidate.is_file():

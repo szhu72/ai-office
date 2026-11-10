@@ -730,14 +730,68 @@ export async function fetchAvatarOverrides(): Promise<Record<string, string>> {
   return baseAvatars;
 }
 
+export function isImageAvatar(avatar: string): boolean {
+  if (!avatar) return false;
+  const trimmed = avatar.trim();
+  // Data URLs, HTTP/HTTPS, Absolute or relative paths
+  if (/^(data:image\/|https?:\/\/|\/|\.\/|\.\.\/)/i.test(trimmed)) return true;
+  // File extensions (including .gif, .png, .jpg, .webp, .svg, etc.)
+  if (/\.(gif|png|jpe?g|webp|svg|ico|avif)(\?.*)?$/i.test(trimmed)) return true;
+  return false;
+}
+
+export function isGifAvatar(avatar: string): boolean {
+  if (!avatar) return false;
+  const trimmed = avatar.trim();
+  return /^data:image\/gif/i.test(trimmed) || /\.gif(\?.*)?$/i.test(trimmed);
+}
+
+export async function uploadAvatarFileApi(file: File, agentId: string): Promise<string> {
+  // 1. Try server upload to get static file URL (no localStorage bloat, high performance)
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("agentId", agentId);
+    const resp = await fetch("/api/upload-avatar", {
+      method: "POST",
+      body: formData,
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data?.url) {
+        return data.url;
+      }
+    }
+  } catch (err) {
+    console.warn("Server avatar upload failed, falling back to data URL", err);
+  }
+
+  // 2. Fallback to FileReader data URL (works offline / pure client-side)
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+      } else {
+        resolve("");
+      }
+    };
+    reader.onerror = () => resolve("");
+    reader.readAsDataURL(file);
+  });
+}
+
 export async function saveAvatarOverrideApi(agentId: string, avatar: string): Promise<void> {
   try {
     const localRaw = localStorage.getItem(LS_AVATARS);
     const existing = localRaw ? JSON.parse(localRaw) : {};
     existing[agentId] = avatar;
-    localStorage.setItem(LS_AVATARS, JSON.stringify(existing));
+    // If avatar is not a gigantic base64 payload, store in localStorage
+    if (!avatar.startsWith("data:") || avatar.length < 500000) {
+      localStorage.setItem(LS_AVATARS, JSON.stringify(existing));
+    }
   } catch {
-    // ignore
+    // QuotaExceeded or disabled
   }
   try {
     await fetch("/api/avatars", {

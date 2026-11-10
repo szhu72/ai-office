@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
 import { officeDataSource } from "./officeDataSource";
-import { askAgent, askMeetingBrainstorm, askUiEvolve, deleteCustomAgentApi, extractProfileFromSkillMarkdown, fetchAgentProfiles, fetchAvatarOverrides, fetchColleagueSkills, fetchCustomAgents, fetchHrRosterMarkdown, fetchSavedUiPatch, getBrowserApiKey, resetUiEvolve, saveAgentProfileApi, saveAvatarOverrideApi, saveColleagueSkillApi, saveCustomAgentApi, saveHrRosterMarkdownApi, setBrowserApiKey, type ColleagueSkillInfo, type UiEvolutionPatch } from "./aiClient";
+import { askAgent, askMeetingBrainstorm, askUiEvolve, deleteCustomAgentApi, extractProfileFromSkillMarkdown, fetchAgentProfiles, fetchAvatarOverrides, fetchColleagueSkills, fetchCustomAgents, fetchHrRosterMarkdown, fetchSavedUiPatch, getBrowserApiKey, isGifAvatar, isImageAvatar, resetUiEvolve, saveAgentProfileApi, saveAvatarOverrideApi, saveColleagueSkillApi, saveCustomAgentApi, saveHrRosterMarkdownApi, setBrowserApiKey, uploadAvatarFileApi, type ColleagueSkillInfo, type UiEvolutionPatch } from "./aiClient";
 import MascotAvatar from "./MascotAvatar";
 import type {
   ActivityEvent,
@@ -82,13 +82,24 @@ const AVATAR_PRESETS = [
   "🦁", "🐸", "🐶", "🦄", "👾", "🎮", "💎", "⚡",
 ];
 
-function isImageAvatar(avatar: string): boolean {
-  return /^(data:image\/|https?:\/\/|\/)/i.test(avatar.trim());
-}
+export const GIF_AVATAR_PRESETS = [
+  { url: "./avatars/dongdong_walk.gif", label: "🐕 東東 (搖尾散步)", role: "吉祥物" },
+  { url: "./avatars/mochi_cheer.gif", label: "🐩 麻糬 (歡呼跳躍)", role: "吉祥物" },
+  { url: "./avatars/cat_typing.gif", label: "🐱 橘貓 (瘋狂打字)", role: "策劃/開發" },
+  { url: "./avatars/robot_pulse.gif", label: "🤖 機器人 (信號心跳)", role: "工程師/數據" },
+];
 
 function AvatarView({ avatar, role }: { avatar: string; role?: string }) {
   if (isImageAvatar(avatar)) {
-    return <img src={avatar} alt="" className="custom-avatar-img" />;
+    const isGif = isGifAvatar(avatar);
+    return (
+      <img
+        src={avatar}
+        alt=""
+        className={`custom-avatar-img ${isGif ? "avatar-gif-animated" : ""}`}
+        loading="eager"
+      />
+    );
   }
   if (role === "吉祥物" && avatar === "🐩") {
     return <MascotAvatar />;
@@ -3549,22 +3560,19 @@ function GamePopupModal({
                     value={editAgentForm.avatar.startsWith("data:") ? "" : editAgentForm.avatar}
                     onChange={(e) => onChangeEditAgentForm({ ...editAgentForm, avatar: e.target.value })}
                   />
-                  <label className="upload-avatar-btn" title="上傳圖片">
+                  <label className="upload-avatar-btn" title="上傳 GIF 動畫或圖片">
                     📁 上傳
                     <input
                       type="file"
-                      accept="image/*"
+                      accept="image/gif,image/png,image/jpeg,image/webp,image/*,.gif,.png,.jpg,.jpeg,.webp"
                       style={{ display: "none" }}
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
-                        const reader = new FileReader();
-                        reader.onload = () => {
-                          if (typeof reader.result === "string") {
-                            onChangeEditAgentForm({ ...editAgentForm, avatar: reader.result });
-                          }
-                        };
-                        reader.readAsDataURL(file);
+                        const uploadedUrl = await uploadAvatarFileApi(file, editAgentForm.id);
+                        if (uploadedUrl) {
+                          onChangeEditAgentForm({ ...editAgentForm, avatar: uploadedUrl });
+                        }
                       }}
                     />
                   </label>
@@ -4276,22 +4284,19 @@ function GamePopupModal({
                     value={newAgentForm.avatar.startsWith("data:") ? "" : newAgentForm.avatar}
                     onChange={(e) => onChangeNewAgentForm({ ...newAgentForm, avatar: e.target.value })}
                   />
-                  <label className="upload-avatar-btn" title="從電腦上傳圖片檔">
+                  <label className="upload-avatar-btn" title="上傳 GIF 動畫或圖片檔">
                     📁 上傳
                     <input
                       type="file"
-                      accept="image/*"
+                      accept="image/gif,image/png,image/jpeg,image/webp,image/*,.gif,.png,.jpg,.jpeg,.webp"
                       style={{ display: "none" }}
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
-                        const reader = new FileReader();
-                        reader.onload = () => {
-                          if (typeof reader.result === "string") {
-                            onChangeNewAgentForm({ ...newAgentForm, avatar: reader.result });
-                          }
-                        };
-                        reader.readAsDataURL(file);
+                        const uploadedUrl = await uploadAvatarFileApi(file, `custom-${Date.now()}`);
+                        if (uploadedUrl) {
+                          onChangeNewAgentForm({ ...newAgentForm, avatar: uploadedUrl });
+                        }
                       }}
                     />
                   </label>
@@ -4410,41 +4415,40 @@ function GamePopupModal({
       case "avatar-picker": {
         const target = office.agents.find((a) => a.id === popup.agentId) ?? office.agents[0];
         const currentAvatar = input || target.avatar;
+        const isGif = isGifAvatar(currentAvatar);
         return (
           <>
             <h2>🖼️ 更換「{target.name}（{target.role}）」頭像</h2>
             <div className="avatar-picker-hero">
               <div className="avatar-preview-large">
                 <AvatarView avatar={currentAvatar} role={target.role} />
+                {isGif && <span className="gif-active-pill" title="GIF 動態播放中">🟢 GIF 動態</span>}
               </div>
               <div className="avatar-picker-controls">
                 <label className="modal-label">
-                  Emoji 或圖片網址 (URL)
+                  Emoji、圖片網址 或 GIF 檔案路徑
                   <input
                     type="text"
                     className="ui-field-input"
                     value={input.startsWith("data:") ? "" : input}
                     onChange={(e) => onInput(e.target.value)}
-                    placeholder={input.startsWith("data:") ? "已套用上傳圖片" : "輸入 Emoji 或 https://... 圖片網址"}
+                    placeholder={input.startsWith("data:") ? "已套用上傳檔案 (GIF / 圖片)" : "輸入 Emoji、./avatars/*.gif 或圖片網址"}
                   />
                 </label>
                 <div className="avatar-upload-row">
                   <label className="upload-avatar-btn upload-avatar-btn-large">
-                    📁 從電腦上傳圖片 (PNG / JPG / GIF / WebP)
+                    📁 從電腦上傳 GIF / 圖片 (支援動態 GIF、PNG、WebP)
                     <input
                       type="file"
-                      accept="image/*"
+                      accept="image/gif,image/png,image/jpeg,image/webp,image/*,.gif,.png,.jpg,.jpeg,.webp"
                       style={{ display: "none" }}
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
-                        const reader = new FileReader();
-                        reader.onload = () => {
-                          if (typeof reader.result === "string") {
-                            onInput(reader.result);
-                          }
-                        };
-                        reader.readAsDataURL(file);
+                        const uploadedUrl = await uploadAvatarFileApi(file, target.id);
+                        if (uploadedUrl) {
+                          onInput(uploadedUrl);
+                        }
                       }}
                     />
                   </label>
@@ -4452,7 +4456,26 @@ function GamePopupModal({
               </div>
             </div>
 
-            <div className="avatar-preset-grid" style={{ marginTop: 10 }}>
+            <div className="gif-presets-shelf">
+              <div className="gif-shelf-title">✨ 精選動態 GIF 像素頭像庫（點擊立即預覽循環動畫）：</div>
+              <div className="gif-preset-grid">
+                {GIF_AVATAR_PRESETS.map((preset) => (
+                  <button
+                    type="button"
+                    key={preset.url}
+                    className={`gif-preset-card ${currentAvatar === preset.url ? "avatar-cell-active" : ""}`}
+                    onClick={() => onInput(preset.url)}
+                    title={`套用 ${preset.label}`}
+                  >
+                    <img src={preset.url} alt="" className="gif-preset-thumb" />
+                    <span className="gif-preset-label">{preset.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="avatar-preset-heading">或選擇傳統 Emoji 圖示：</div>
+            <div className="avatar-preset-grid">
               {AVATAR_PRESETS.map((em) => (
                 <button
                   type="button"

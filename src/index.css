@@ -1277,6 +1277,7 @@ button:focus-visible, select:focus-visible, textarea:focus-visible {
   background: #fffdf8;
 }
 .avatar-preview-large {
+  position: relative;
   display: grid;
   width: 64px;
   height: 64px;
@@ -1288,6 +1289,83 @@ button:focus-visible, select:focus-visible, textarea:focus-visible {
   background: #f3ead6;
   box-shadow: 3px 3px 0 rgba(40,43,43,.18);
   font-size: 36px;
+}
+.gif-active-pill {
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  right: 2px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(30, 115, 60, 0.92);
+  border-radius: 3px;
+  padding: 1px 3px;
+  text-align: center;
+  pointer-events: none;
+  line-height: 1.2;
+}
+.avatar-gif-animated {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+.gif-presets-shelf {
+  margin: 12px 0 10px;
+  padding: 10px;
+  background: #f7f3e8;
+  border: 1px dashed #d8cfba;
+  border-radius: 6px;
+}
+.gif-shelf-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #5c4e3b;
+  margin-bottom: 8px;
+}
+.gif-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+.gif-preset-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid #dcd3be;
+  border-radius: 5px;
+  background: #fffdfa;
+  cursor: pointer;
+  text-align: left;
+  transition: all .12s;
+}
+.gif-preset-card:hover {
+  border-color: var(--orange);
+  background: #fff7ed;
+  transform: translateY(-1px);
+}
+.gif-preset-thumb {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  border: 1px solid #6b5c43;
+  border-radius: 4px;
+  background: #f3ead6;
+}
+.gif-preset-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #3b3226;
+  line-height: 1.3;
+}
+.avatar-preset-heading {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6d6657;
+  margin: 12px 0 6px;
 }
 .avatar-picker-controls { flex: 1; min-width: 0; }
 .avatar-preset-grid {
