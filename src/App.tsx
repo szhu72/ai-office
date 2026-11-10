@@ -843,24 +843,30 @@ function App() {
   };
 
   const moveAgentToZone = (agent: Agent, zoneId: string) => {
-    const zoneName = office.zones.find((z) => z.id === zoneId)?.name ?? zoneId;
-    const status: AgentStatus =
-      zoneId === "meeting"
-        ? "reviewing"
-        : zoneId === "rest" || zoneId === "lounge"
-        ? "idle"
-        : "coding";
-    const bubble =
-      zoneId === "meeting"
-        ? "📢 前往會議室同步進度！"
-        : zoneId === "rest" || zoneId === "lounge"
-        ? "☕ 在休息區待命充電～"
-        : "💼 回到工作區專注衝刺！";
+    if (zoneId === "tasks") return; // 任務牆不需要調度同事進駐
+    if (zoneId === "meeting") {
+      // 會議室為虛擬按鈕功能：切換開會狀態並彈出全體會議與決策智庫
+      officeDataSource.dispatch({
+        type: "agent.status",
+        agentId: agent.id,
+        status: "reviewing",
+        zoneId: agent.zoneId === "rest" ? "board" : agent.zoneId,
+        bubble: "📢 正在參與全體同步會議～",
+        event: createEvent(agent.id, "handoff", `召集 ${agent.name} 進行會議同步`, "已開啟會議與決策智庫。"),
+      });
+      setSelection({ kind: "meeting" });
+      setPopup({ kind: "team-decisions" });
+      return;
+    }
+    const targetZoneId = zoneId === "lounge" ? "rest" : zoneId;
+    const zoneName = office.zones.find((z) => z.id === targetZoneId)?.name ?? targetZoneId;
+    const status: AgentStatus = targetZoneId === "rest" ? "idle" : "coding";
+    const bubble = targetZoneId === "rest" ? "☕ 在休息區待命充電～" : "💼 回到工作區專注衝刺！";
     officeDataSource.dispatch({
       type: "agent.status",
       agentId: agent.id,
       status,
-      zoneId,
+      zoneId: targetZoneId,
       bubble,
       event: createEvent(agent.id, "handoff", `總監調度 ${agent.name} 前往 ${zoneName}`, `已將同仁工位調動至 ${zoneName}。`),
     });
@@ -973,6 +979,14 @@ function App() {
             >
               🎮 指令台
             </button>
+            <button
+              type="button"
+              className="secondary-top-button"
+              onClick={() => { setPopup({ kind: "team-decisions" }); }}
+              title="召開全體同步會議與決策智庫"
+            >
+              📢 開會
+            </button>
           </div>
           )}
 
@@ -1060,16 +1074,16 @@ function App() {
               }}
               onSelectTask={(id) => {
                 setSelection({ kind: "task", id });
-                if (mobile916) {
-                  setPopup({ kind: "task-detail", taskId: id });
-                }
+                setPopup({ kind: "task-detail", taskId: id });
               }}
               onSelectZone={(zoneId) => {
+                if (zoneId === "tasks") {
+                  setPopup({ kind: "task-detail", taskId: (office.tasks[0]?.id || "prototype") });
+                  return;
+                }
                 if (zoneId === "meeting") {
                   setSelection({ kind: "meeting" });
-                  if (mobile916) {
-                    setPopup({ kind: "team-decisions" });
-                  }
+                  setPopup({ kind: "team-decisions" });
                   return;
                 }
                 setPopup({ kind: "zone", zoneId });
@@ -1177,6 +1191,7 @@ function App() {
                   latestThought={thoughts.find((t) => t.agentId === selectedAgent.id)}
                   onSelectTask={() => {
                     setSelection({ kind: "task", id: activeTask.id });
+                    setPopup({ kind: "task-detail", taskId: activeTask.id });
                   }}
                   onStatus={(status) => changeAgentStatus(selectedAgent, status)}
                   onAction={setModal}
@@ -1759,11 +1774,15 @@ function OfficeScene({
                   ? { gridColumn: "1 / -1", gridRow: 1 }
                   : { gridColumn: zone.position.column, gridRow: zone.position.row }
               }
-              onClick={() => onSelectZone(zone.id)}
-              onKeyDown={(event) => event.key === "Enter" && onSelectZone(zone.id)}
-              role="button"
-              tabIndex={0}
-              aria-label={`點擊查看${zone.name}詳情與調度`}
+              onClick={() => {
+                if (!isTaskBanner) onSelectZone(zone.id);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !isTaskBanner) onSelectZone(zone.id);
+              }}
+              role={isTaskBanner ? "region" : "button"}
+              tabIndex={isTaskBanner ? -1 : 0}
+              aria-label={isTaskBanner ? "全域任務目標公告看板" : `點擊查看${zone.name}詳情與調度`}
             >
               <div className="zone-head">
                 <div className="zone-label">
@@ -1788,8 +1807,15 @@ function OfficeScene({
                   <button
                     type="button"
                     className="zone-arrow"
-                    aria-label={`開啟${zone.name}視窗`}
-                    onClick={(event) => { event.stopPropagation(); onSelectZone(zone.id); }}
+                    aria-label={isTaskBanner ? "派發新任務" : `開啟${zone.name}視窗`}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      if (isTaskBanner) {
+                        onOpenAssign();
+                      } else {
+                        onSelectZone(zone.id);
+                      }
+                    }}
                   >
                     ↗
                   </button>
@@ -1797,9 +1823,8 @@ function OfficeScene({
               </div>
 
               {zone.kind === "work" && <WorkProps />}
-              {zone.kind === "break" && <BreakProps lounge={zone.id === "lounge"} />}
+              {zone.kind === "break" && <BreakProps />}
               {zone.kind === "board" && <BoardProps />}
-              {zone.kind === "meeting" && <MeetingProps />}
 
               {/* 01 看板：橫幅比例等於頁面寬度，含結束任務功能 */}
               {zone.kind === "tasks" && (
@@ -1967,10 +1992,14 @@ function WorkProps() {
   );
 }
 
-function BreakProps({ lounge }: { lounge: boolean }) {
+function BreakProps() {
   return (
-    <div className={`break-props ${lounge ? "lounge-props" : ""}`} aria-hidden="true">
-      {lounge ? <><div className="beanbag" /><div className="floor-lamp"><i /></div><div className="tiny-plant"><i /><i /><b /></div></> : <><div className="coffee-table"><i>☕</i></div><div className="sofa"><span /><span /></div></>}
+    <div className="break-props" aria-hidden="true">
+      <div className="coffee-table"><i>☕</i></div>
+      <div className="sofa"><span /><span /></div>
+      <div className="beanbag" />
+      <div className="floor-lamp"><i /></div>
+      <div className="tiny-plant"><i /><i /><b /></div>
     </div>
   );
 }
@@ -1980,15 +2009,6 @@ function BoardProps() {
     <div className="board-props" aria-hidden="true">
       <div className="idea-board"><span className="sticky sticky-peach" /><span className="sticky sticky-blue" /><span className="sticky sticky-yellow" /><i>✳</i></div>
       <div className="board-pencil" />
-    </div>
-  );
-}
-
-function MeetingProps() {
-  return (
-    <div className="meeting-props" aria-hidden="true">
-      <div className="meeting-table"><i /><i /><i /><i /></div>
-      <div className="meeting-signal" title="同步中"><span /></div>
     </div>
   );
 }
@@ -3372,6 +3392,22 @@ function GamePopupModal({
       }
 
       case "zone": {
+        if (popup.zoneId === "tasks") {
+          return (
+            <>
+              <h2>📢 01 任務牆 · 全域任務看板</h2>
+              <p style={{ margin: "14px 0", color: "#666", fontSize: 13, lineHeight: 1.6 }}>
+                全域任務目標公告看板。員工於工作區提取目標，無須進駐此區。
+              </p>
+              <div className="modal-actions">
+                <button type="button" className="secondary-button" onClick={() => { onOpenActionModal("assign"); onClose(); }}>
+                  ＋ 派發新任務
+                </button>
+                <button type="button" className="primary-button" onClick={onClose}>關閉</button>
+              </div>
+            </>
+          );
+        }
         const zone: Zone | undefined = office.zones.find((z) => z.id === popup.zoneId);
         const zoneAgents = office.agents.filter((a) => a.zoneId === popup.zoneId);
         return (
@@ -3398,7 +3434,7 @@ function GamePopupModal({
                   className="summon-chip row-with-avatar"
                   onClick={() => onMoveAgent(
                     a,
-                    popup.zoneId === "rest" || popup.zoneId === "lounge" ? "idle" : popup.zoneId === "meeting" ? "reviewing" : "thinking",
+                    popup.zoneId === "rest" ? "idle" : "thinking",
                     popup.zoneId,
                   )}
                 >

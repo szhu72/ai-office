@@ -5,9 +5,7 @@ export const initialOffice: OfficeState = {
     { id: "tasks", name: "任務牆", kind: "tasks", subtitle: "全域公告 · 任務看板", marker: "01", position: { column: 1, row: 1 } },
     { id: "work", name: "工作區", kind: "work", subtitle: "專注產出", marker: "02", position: { column: 1, row: 2 } },
     { id: "board", name: "討論板", kind: "board", subtitle: "靈感與決策", marker: "03", position: { column: 2, row: 2 } },
-    { id: "meeting", name: "會議室", kind: "meeting", subtitle: "快速同步  ·  09:41", marker: "04", position: { column: 3, row: 2 } },
-    { id: "lounge", name: "耍廢室", kind: "break", subtitle: "充電中也很重要", marker: "05", position: { column: 1, row: 3 } },
-    { id: "rest", name: "休息區", kind: "break", subtitle: "咖啡與靈感", marker: "06", position: { column: 2, row: 3 } },
+    { id: "rest", name: "休息區", kind: "break", subtitle: "咖啡、充電與放鬆", marker: "04", position: { column: 3, row: 2 } },
   ],
   agents: [
     {
@@ -99,7 +97,7 @@ export const initialOffice: OfficeState = {
       status: "reviewing",
       taskId: "research",
       progress: 86,
-      zoneId: "meeting",
+      zoneId: "board",
       bubble: "樣本還要再確認",
       specialty: "量化指標建模、問卷樣本與事件流統計、轉換率漏斗分析、代理人卡關異常診斷、圖表洞察解讀",
       personality: "統計學與行為經濟學雙碩士，說話溫和有禮但邏輯極度嚴謹，從不接受「我覺得差不多」的模糊推論，只相信有效樣本數與信賴區間。常駐會議室白板前比對事件流，總能精準抓出「18% 使用者最在意卡關原因」這類決定產品成敗的關鍵數據。",
