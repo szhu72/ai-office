@@ -721,7 +721,16 @@ export async function fetchAvatarOverrides(): Promise<Record<string, string>> {
     if (localRaw) {
       const localObj = JSON.parse(localRaw);
       if (localObj && typeof localObj === "object") {
-        return { ...baseAvatars, ...localObj };
+        // 清理本地過期或過大的 Base64 髒資料（>50KB），避免拖慢速度或覆蓋官方 GIF
+        const cleaned: Record<string, string> = {};
+        for (const [k, v] of Object.entries(localObj)) {
+          if (typeof v === "string" && !v.startsWith("data:image/") && v.length < 500) {
+            cleaned[k] = v;
+          }
+        }
+        localStorage.setItem(LS_AVATARS, JSON.stringify(cleaned));
+        // baseAvatars 權威設定優先，確保在任何環境都展示最新 GIF
+        return { ...cleaned, ...baseAvatars };
       }
     }
   } catch {
@@ -1149,7 +1158,14 @@ export async function fetchAgentProfiles(): Promise<Record<string, Partial<Agent
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === "object") {
         for (const [id, p] of Object.entries(parsed)) {
-          merged[id] = { ...(merged[id] || {}), ...(p as Partial<Agent>) };
+          if (p && typeof p === "object") {
+            const sanitized = { ...(p as Partial<Agent>) };
+            // 清理過期巨大 Base64
+            if (typeof sanitized.avatar === "string" && sanitized.avatar.startsWith("data:image/")) {
+              delete sanitized.avatar;
+            }
+            merged[id] = { ...(merged[id] || {}), ...sanitized };
+          }
         }
       }
     }
