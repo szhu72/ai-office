@@ -1,0 +1,21 @@
+{
+  "brandTitle": "無所事事辦公室",
+  "headline": "早安，總監",
+  "primaryColor": "#ee6c29",
+  "paperColor": "#fbfaf6",
+  "borderColor": "#282b2b",
+  "fontScale": 1.35,
+  "sidePanelWidth": 338,
+  "cardRadius": 10,
+  "note": "",
+  "cssVars": {
+    "--orange": "#ee6c29",
+    "--charcoal": "#282b2b",
+    "--paper": "#fbfaf6"
+  },
+  "thought": "總監希望確認標準的辦公室暖橘手繪復古風格，維持 1.35 倍的大字級易讀性，以及 338px 精確側欄比例與 10px 柔和圓角。我已將各核心容器的圓角與邊框層次重新標準化，強化溫暖紙感與層次對比。",
+  "summary": "報告總監！已將主視覺調校為經典暖橘紙感配色，字級縮放鎖定在 1.35 倍，所有卡片及功能元件均統一套用 10px 圓角規範。",
+  "customCss": ".summary-card, .zone-card, .side-panel, .output-card, .activity-feed, .thought-monitor, .action-modal, .game-popup-modal { border-radius: 10px !important; } .primary-button, .secondary-top-button, .quick-actions button { border-radius: 10px !important; transition: all 0.2s ease; } .zone-card { border-color: var(--charcoal); background: var(--paper); box-shadow: 3px 3px 0 var(--charcoal); } .topbar { border-radius: 0 0 10px 10px; }",
+  "model": "gemini-3.8-flash",
+  "elapsedMs": 382834
+}
