@@ -36,6 +36,15 @@ def main():
     subprocess.run(["npm.cmd", "run", "build"], cwd=ROOT, check=True)
     dist = ROOT / "dist"
     (dist / ".nojekyll").write_text("", encoding="ascii")
+
+    # Inject @ts-nocheck header to compiled JS bundles so IDE linters never report false-positive diagnostics
+    dist_assets = dist / "assets"
+    if dist_assets.exists():
+        for js_file in dist_assets.glob("*.js"):
+            content = js_file.read_text(encoding="utf-8")
+            if not content.startswith("// @ts-nocheck"):
+                js_file.write_text("// @ts-nocheck\n/* eslint-disable */\n" + content, encoding="utf-8")
+
     for item in dist.iterdir():
         dest = ROOT / item.name
         if dest.exists():

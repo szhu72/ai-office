@@ -1,0 +1,32 @@
+{
+  "files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/CVS": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true,
+    "**/.venv": true,
+    "**/dist": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/assets": true,
+    "**/docs/assets": true,
+    "**/.venv": true
+  },
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/assets/**": true,
+    "**/docs/assets/**": true,
+    "**/.venv/**": true
+  },
+  "javascript.validate.enable": false,
+  "typescript.validate.enable": true,
+  "css.validate": true,
+  "html.validate.scripts": false
+}
