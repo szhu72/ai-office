@@ -1,0 +1,101 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+6 0 obj
+<< /Length 5378 >>
+stream
+0.984 0.980 0.965 rg 0 0 595 842 re f
+0.157 0.169 0.169 rg 36 760 523 52 re f
+0.933 0.424 0.161 rg 48 770 32 32 re f
+BT /F2 16 Tf 1.000 0.970 0.920 rg 58 780 Td (O) Tj ET
+BT /F2 14 Tf 1.000 0.970 0.920 rg 92 788 Td (AI OFFICE - BRAND VISUAL SYSTEM & LICENSE SPEC \(brand-colors.pdf\)) Tj ET
+BT /F1 9 Tf 0.850 0.830 0.780 rg 92 771 Td (Doc ID: AIO-BRAND-SPEC-v2.4  |  QA & Compliance Approved by Supervisor XiaoChu \(Virgo\)) Tj ET
+BT /F2 12 Tf 0.157 0.169 0.169 rg 36 736 Td (1. CORE PAPER & RPG BRAND PALETTE \(CSS Variables & WCAG AA\)) Tj ET
+0.89 0.87 0.82 RG 1 w 36 696 523 24 re S
+0.933 0.424 0.161 rg 42 699 36 18 re B
+BT /F2 9 Tf 0.157 0.169 0.169 rg 88 705 Td (Director Orange \(--orange\)) Tj ET
+BT /F2 9 Tf 0.550 0.300 0.120 rg 235 705 Td (#EE6C29) Tj ET
+BT /F1 8 Tf 0.350 0.340 0.300 rg 300 705 Td (Primary CTA / Active Accent / Badge) Tj ET
+0.89 0.87 0.82 RG 1 w 36 668 523 24 re S
+0.157 0.169 0.169 rg 42 671 36 18 re B
+BT /F2 9 Tf 0.157 0.169 0.169 rg 88 677 Td (Ink Charcoal \(--charcoal\)) Tj ET
+BT /F2 9 Tf 0.550 0.300 0.120 rg 235 677 Td (#282B2B) Tj ET
+BT /F1 8 Tf 0.350 0.340 0.300 rg 300 677 Td (2px Modal Border / Primary Typography \(14.1:1 AAA\)) Tj ET
+0.89 0.87 0.82 RG 1 w 36 640 523 24 re S
+0.886 0.855 0.761 rg 42 643 36 18 re B
+BT /F2 9 Tf 0.157 0.169 0.169 rg 88 649 Td (Warm Paper \(--paper\)) Tj ET
+BT /F2 9 Tf 0.550 0.300 0.120 rg 235 649 Td (#E2DAC2) Tj ET
+BT /F1 8 Tf 0.350 0.340 0.300 rg 300 649 Td (Isometric Office Floor & Card Canvas) Tj ET
+0.89 0.87 0.82 RG 1 w 36 612 523 24 re S
+0.984 0.980 0.965 rg 42 615 36 18 re B
+BT /F2 9 Tf 0.157 0.169 0.169 rg 88 621 Td (Ivory Surface \(--surface\)) Tj ET
+BT /F2 9 Tf 0.550 0.300 0.120 rg 235 621 Td (#FBFAF6) Tj ET
+BT /F1 8 Tf 0.350 0.340 0.300 rg 300 621 Td (Popup Notification Modal & Speech Bubble Surface) Tj ET
+0.89 0.87 0.82 RG 1 w 36 584 523 24 re S
+0.420 0.608 0.447 rg 42 587 36 18 re B
+BT /F2 9 Tf 0.157 0.169 0.169 rg 88 593 Td (Active Sage Green \(--green\)) Tj ET
+BT /F2 9 Tf 0.550 0.300 0.120 rg 235 593 Td (#6B9B72) Tj ET
+BT /F1 8 Tf 0.350 0.340 0.300 rg 300 593 Td (Working Status LED / Approved Decision Card) Tj ET
+0.89 0.87 0.82 RG 1 w 36 556 523 24 re S
+0.478 0.651 0.702 rg 42 559 36 18 re B
+BT /F2 9 Tf 0.157 0.169 0.169 rg 88 565 Td (Calm Slate Blue \(--blue\)) Tj ET
+BT /F2 9 Tf 0.550 0.300 0.120 rg 235 565 Td (#7AA6B3) Tj ET
+BT /F1 8 Tf 0.350 0.340 0.300 rg 300 565 Td (Researching & Break Status / Tool Running Chip) Tj ET
+0.89 0.87 0.82 RG 1 w 36 528 523 24 re S
+0.953 0.569 0.125 rg 42 531 36 18 re B
+BT /F2 9 Tf 0.157 0.169 0.169 rg 88 537 Td (Warning Amber \(--amber\)) Tj ET
+BT /F2 9 Tf 0.550 0.300 0.120 rg 235 537 Td (#F39120) Tj ET
+BT /F1 8 Tf 0.350 0.340 0.300 rg 300 537 Td (Pending Confirmation / Disagreement Alert) Tj ET
+0.89 0.87 0.82 RG 1 w 36 500 523 24 re S
+0.431 0.416 0.376 rg 42 503 36 18 re B
+BT /F2 9 Tf 0.157 0.169 0.169 rg 88 509 Td (Accessible Muted \(--muted-safe\)) Tj ET
+BT /F2 9 Tf 0.550 0.300 0.120 rg 235 509 Td (#6E6A60) Tj ET
+BT /F1 8 Tf 0.350 0.340 0.300 rg 300 509 Td (WCAG AA Compliant Secondary Text \(5.3:1\)) Tj ET
+BT /F2 12 Tf 0.157 0.169 0.169 rg 36 470 Td (2. BACKGROUND TERMINAL ACTIVITY LOG TOKens \(>_ office.activity.log\)) Tj ET
+0.086 0.106 0.098 rg 36 370 523 88 re f
+BT /F2 9 Tf 0.498 0.878 0.635 rg 48 440 Td (>_ office.activity.log   --all  --tool  --file  --error  --handoff) Tj ET
+BT /F1 8 Tf 0.541 0.839 0.580 rg 48 424 Td ([09:44:12] [FILE]    @engineer   $ Updated App.tsx & visual system tokens  #8AD694) Tj ET
+BT /F1 8 Tf 0.949 0.608 0.345 rg 48 410 Td ([09:43:38] [ERROR]   @virgo      $ Verified brand-colors.pdf license spec  #F29B58) Tj ET
+BT /F1 8 Tf 0.498 0.757 0.878 rg 48 396 Td ([09:43:02] [TOOL]    @researcher $ Executed web.search & UI contrast check #7FC1E0) Tj ET
+BT /F1 8 Tf 0.780 0.643 0.910 rg 48 382 Td ([09:41:55] [HANDOFF] @planner    $ Handed off MVP spec to QA Supervisor    #C7A4E8) Tj ET
+BT /F2 12 Tf 0.157 0.169 0.169 rg 36 344 Td (3. RESPONSIVE 9:16 MOBILE & POPUP MODAL ARCHITECTURE) Tj ET
+BT /F1 8 Tf 0.250 0.240 0.210 rg 44 326 Td (- Mobile Collapsible Toolbar: .topbar uses flex: 0 0 auto; tools collapse into [Toolbar Menu] popup.) Tj ET
+BT /F1 8 Tf 0.250 0.240 0.210 rg 44 312 Td (- Notification Popup Standard: Colleague Status, Team Decisions, HR Roster, and Tasks open in modals.) Tj ET
+BT /F1 8 Tf 0.250 0.240 0.210 rg 44 298 Td (- Adaptive Speech Bubbles: Auto-scales width \(68px - 188px\) with word-wrap to prevent sprite overlap.) Tj ET
+BT /F1 8 Tf 0.250 0.240 0.210 rg 44 284 Td (- Strict Avatar Clipping: All Emoji, Pixel Canvas, and uploaded images are clipped inside .avatar-clip-box.) Tj ET
+0.95 0.97 0.94 rg 0.42 0.61 0.45 RG 1.5 w 36 188 523 84 re B
+BT /F2 10 Tf 0.220 0.420 0.250 rg 48 252 Td (4. BRAND ASSET, FONT & GITHUB PAGES LICENSE DECLARATION \(APPROVED\)) Tj ET
+BT /F1 8 Tf 0.250 0.280 0.250 rg 48 236 Td (1\) All color tokens, isometric room vector props, and pixel mascot sprites \(Momo & DongDong\) are) Tj ET
+BT /F1 8 Tf 0.250 0.280 0.250 rg 48 224 Td (   original first-party assets licensed for public deployment on https://szhu72.github.io/ai-office/.) Tj ET
+BT /F1 8 Tf 0.250 0.280 0.250 rg 48 212 Td (2\) Typography uses system-safe & open stacks \(Trebuchet MS, Noto Sans TC, Consolas\) with zero) Tj ET
+BT /F2 8 Tf 0.220 0.420 0.250 rg 48 200 Td (   proprietary font infringement risk. QA Status: PASSED & SIGNED BY SUPERVISOR XIAOCHU.) Tj ET
+endstream
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000121 00000 n 
+0000000257 00000 n 
+0000000327 00000 n 
+0000000402 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R >>
+startxref
+5832
+%%EOF
