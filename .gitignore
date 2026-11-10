@@ -11,3 +11,6 @@ __pycache__/
 # Build artifacts
 dist/
 *.log
+
+# Raw large media source
+picture/

@@ -83,8 +83,10 @@ const AVATAR_PRESETS = [
 ];
 
 export const GIF_AVATAR_PRESETS = [
-  { url: "./avatars/dongdong_walk.gif", label: "🐕 東東 (搖尾散步)", role: "吉祥物" },
-  { url: "./avatars/mochi_cheer.gif", label: "🐩 麻糬 (歡呼跳躍)", role: "吉祥物" },
+  { url: "./avatars/mimi.gif", label: "🐩 米米 (專屬動態動畫)", role: "吉祥物" },
+  { url: "./avatars/dongdong.gif", label: "🐕 東東 (專屬動態動畫)", role: "吉祥物" },
+  { url: "./avatars/dongdong_walk.gif", label: "🐕 東東 (像素散步)", role: "吉祥物" },
+  { url: "./avatars/mochi_cheer.gif", label: "🐩 麻糬 (像素歡呼)", role: "吉祥物" },
   { url: "./avatars/cat_typing.gif", label: "🐱 橘貓 (瘋狂打字)", role: "策劃/開發" },
   { url: "./avatars/robot_pulse.gif", label: "🤖 機器人 (信號心跳)", role: "工程師/數據" },
 ];

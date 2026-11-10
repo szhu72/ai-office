@@ -61,7 +61,7 @@
     "department": "企業文化與心靈療癒部（Culture, Vibes & Creative Spark）",
     "positioning": "吉祥物 ／ 首席辦公室吉祥物與靈感破冰大使（緩和開發高壓、點亮創意火花的靈魂夥伴）",
     "role": "吉祥物",
-    "avatar": "./avatars/mochi_cheer.gif",
+    "avatar": "./avatars/mimi.gif",
     "zoneId": "rest",
     "specialty": "團隊士氣激勵、品牌溫暖語氣調校、創意破冰點子發想、高壓衝刺期的情緒價值與療癒支援",
     "personality": "一隻蓬鬆潔白、聰明機靈的貴賓犬吉祥物，平時最喜歡窩在休息區沙發旁喝水待命。只要察覺辦公室氣氛陷入僵局或大家燒腦過度，麻糬就會「汪！」一聲跑出來搖尾巴打氣，並從直覺與玩家樂趣角度叼來讓人眼睛一亮的趣味彩蛋點子。"
@@ -74,6 +74,6 @@
     "zoneId": "work",
     "specialty": "跨房間巡邏打氣、陪伴米米與麻糬炒熱辦公室氣氛、提供天馬行空的玩家視角回饋與趣味互動靈感",
     "personality": "米米最要好的摯友，活力充沛、好奇心旺盛的辦公室第二號吉祥物。最喜歡在工作區與討論板之間串門子，看看阿碼寫程式、陪阿研貼便利貼，用最純粹熱情的快樂能量感染每一位同事，是團隊裡不可或缺的開心果。",
-    "avatar": "./avatars/dongdong_walk.gif"
+    "avatar": "./avatars/dongdong.gif"
   }
 }
