@@ -2242,6 +2242,16 @@ function GamePopupModal({
               <button
                 type="button"
                 className="toolbar-menu-card"
+                onClick={() => onNavigatePopup({ kind: "attachment", taskId: "prototype", file: "brand-colors.pdf" })}
+              >
+                <span className="toolbar-menu-icon">📑</span>
+                <strong>brand-colors.pdf 視覺規範</strong>
+                <small>完整色票系統、WCAG 對比度與品牌授權書</small>
+              </button>
+
+              <button
+                type="button"
+                className="toolbar-menu-card"
                 onClick={() => {
                   onInput(browserApiKey);
                   onNavigatePopup({ kind: "api-key" });
@@ -2807,6 +2817,12 @@ function GamePopupModal({
                     <div className="popup-sub">{a.latestOutput}</div>
                   </div>
                   <div className="popup-row-btns">
+                    <button
+                      type="button"
+                      onClick={() => onNavigatePopup({ kind: "attachment", taskId: "prototype", file: "brand-colors.pdf" })}
+                    >
+                      📑 檢視 brand-colors.pdf
+                    </button>
                     <button type="button" onClick={() => onRunAgent(a, "總監已授權通過，請繼續完成你的審核與後續方案！")}>✓ 授權繼續</button>
                   </div>
                 </div>
@@ -3201,15 +3217,198 @@ function GamePopupModal({
       case "attachment": {
         const task = office.tasks.find((t) => t.id === popup.taskId) ?? selectedTask ?? office.tasks[0];
         const owner = office.agents.find((a) => a.id === task.ownerId) ?? office.agents[0];
+        const virgoAgent = office.agents.find((a) => a.id === "virgo") ?? owner;
+
+        if (popup.file === "brand-colors.pdf") {
+          const corePalette = [
+            { name: "品牌主強調橘", token: "--orange", hex: uiForm.primaryColor || "#EE6C29", contrast: "AA 大字 / 雙黑框", usage: "品牌徽章、＋派任務按鈕、選中角色外框、思考光暈" },
+            { name: "炭黑粗框主字", token: "--charcoal", hex: uiForm.borderColor || "#282B2B", contrast: "14.1:1 AAA", usage: "通知視窗 2px 實體邊框、立體陰影、主標題與內文" },
+            { name: "復古暖紙底色", token: "--paper", hex: uiForm.paperColor || "#E2DAC2", contrast: "基底畫布", usage: "辦公室等距地板、房間外框底板、暖紙主題背景" },
+            { name: "象牙白卡片面", token: "--surface", hex: "#FBFAF6", contrast: "最高明度基底", usage: "跳出式通知視窗、右側資訊欄、角色頭頂對話氣泡" },
+            { name: "常駐工作綠", token: "--green", hex: "#6B9B72", contrast: "4.9:1 AA", usage: "工作中狀態燈號、已形成決策卡片、完成步驟勾選" },
+            { name: "休息研究藍", token: "--blue", hex: "#7AA6B3", contrast: "4.6:1 AA", usage: "休息／研究中狀態、AI 工具呼叫動畫、次要標籤" },
+            { name: "警示琥珀橘", token: "--amber", hex: "#F39120", contrast: "5.2:1 AA", usage: "待總監確認項目、團隊分歧提示、監督卡關警示" },
+            { name: "合格次要字色", token: "--muted-safe", hex: "#6E6A60", contrast: "5.3:1 AA", usage: "取代過淺灰字，用於職稱、時間戳記與狀態說明" },
+          ];
+
+          const terminalPalette = [
+            { label: "TERM_BG", hex: "#161B19", desc: "終端機深色背景漸層" },
+            { label: "PROMPT", hex: "#7FE0A2", desc: ">_ office.activity.log 主提示綠" },
+            { label: "[TOOL]", hex: "#7FC1E0", desc: "AI 工具呼叫事件標籤" },
+            { label: "[FILE]", hex: "#8AD694", desc: "檔案與程式碼變更標籤" },
+            { label: "[ERROR]", hex: "#F29B58", desc: "監督攔截與異常警示標籤" },
+            { label: "[HANDOFF]", hex: "#C7A4E8", desc: "跨部門任務交接標籤" },
+            { label: "@AGENT", hex: "#F4B886", desc: "觸發事件之同事帳號高亮" },
+          ];
+
+          return (
+            <>
+              <div className="chat-modal-header">
+                <h2>📑 brand-colors.pdf — 品牌視覺化系統與授權合規規範書</h2>
+                <div className="popup-row-btns">
+                  <a
+                    className="secondary-top-button"
+                    href="./docs/brand-colors.pdf"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    📄 開啟 PDF 原檔
+                  </a>
+                  <a
+                    className="secondary-top-button"
+                    href="./docs/BRAND_VISUAL_SYSTEM.md"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    📘 完整規範 MD
+                  </a>
+                </div>
+              </div>
+
+              <div className="brand-spec-banner">
+                <span><strong>文件編號：</strong>AIO-BRAND-SPEC-v2.4</span>
+                <span><strong>處女座監督（🔍 小處）驗收：</strong>✅ 色票、WCAG 對比度、深色終端機與公開授權條款已全數補齊</span>
+              </div>
+
+              <div className="modal-label" style={{ marginTop: 8 }}>
+                1. 核心品牌色票系統（Core Paper & RPG Palette — 點擊色票可複製 HEX）
+              </div>
+              <div className="brand-swatch-grid">
+                {corePalette.map((sw) => (
+                  <button
+                    type="button"
+                    key={sw.token}
+                    className="brand-swatch-card"
+                    title={`點擊複製 ${sw.hex}`}
+                    onClick={() => { void navigator.clipboard?.writeText(sw.hex); }}
+                  >
+                    <span className="brand-swatch-chip" style={{ background: sw.hex }} />
+                    <div className="brand-swatch-meta">
+                      <div className="brand-swatch-top">
+                        <strong>{sw.name}</strong>
+                        <code>{sw.hex}</code>
+                      </div>
+                      <div className="brand-swatch-sub">
+                        <span>{sw.token}</span>
+                        <span className="brand-contrast-pill">{sw.contrast}</span>
+                      </div>
+                      <p>{sw.usage}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <div className="modal-label" style={{ marginTop: 10 }}>
+                2. 終端機背景活動流深色色票（Terminal Activity Log Dark Tokens）
+              </div>
+              <div className="brand-terminal-preview">
+                <div className="brand-terminal-header">
+                  <span>&gt;_ office.activity.log — Dark Console Token Matrix</span>
+                  <code>#161B19 → #111514</code>
+                </div>
+                <div className="brand-terminal-tokens">
+                  {terminalPalette.map((tp) => (
+                    <div key={tp.label} className="brand-term-chip">
+                      <i style={{ background: tp.hex }} />
+                      <strong style={{ color: tp.hex }}>{tp.label}</strong>
+                      <code>{tp.hex}</code>
+                      <span>{tp.desc}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="decision-popup-grid" style={{ marginTop: 10 }}>
+                <div className="decision-card decision-card-ok">
+                  <div className="decision-card-head">
+                    <strong>📐 3. 響應式 9:16 與視覺邊界規範</strong>
+                  </div>
+                  <p>• 手機頂欄強制單行折疊為「☰ 工具列」，零遮擋儀表板。</p>
+                  <p>• 角色對話氣泡（68px–188px）依字數自動伸縮不重疊。</p>
+                  <p>• 頭像統一包裹於 .avatar-clip-box，嚴格防止圖片溢框。</p>
+                </div>
+
+                <div className="decision-card decision-card-pending">
+                  <div className="decision-card-head">
+                    <strong>⚖️ 4. 品牌素材、字體與公開部署授權聲明</strong>
+                  </div>
+                  <p>• 色票系統、房間向量道具與像素吉祥物（麻糬、東東）均為專案原創資產，授權於 GitHub Pages（szhu72.github.io/ai-office/）公開展示與修改。</p>
+                  <p>• 採用系統安全與開源字型堆疊（Trebuchet MS / Noto Sans TC / Consolas），無第三方商用字體侵權風險。</p>
+                </div>
+              </div>
+
+              <div className="modal-actions">
+                <button type="button" className="cancel-button" onClick={onClose}>關閉</button>
+                <button
+                  type="button"
+                  className="secondary-top-button"
+                  onClick={() => onNavigatePopup({ kind: "ui-studio" })}
+                >
+                  🎨 開啟改介面 Studio
+                </button>
+                <button
+                  type="button"
+                  className="secondary-top-button"
+                  onClick={() => onRunAgent(virgoAgent, "我已經檢視完補齊後的 brand-colors.pdf（AIO-BRAND-SPEC-v2.4），請以處女座監督身分給出最終驗收簽核報告。", task.goal, task.id)}
+                >
+                  🔍 請小處出具驗收報告
+                </button>
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={() => {
+                    onApprove();
+                    onClose();
+                  }}
+                >
+                  ✓ 簽署授權並解除小處卡關 <span>→</span>
+                </button>
+              </div>
+            </>
+          );
+        }
+
+        const attachmentSpecs: Record<string, string> = {
+          "office-wireframe.fig": [
+            "【檔案規格】office-wireframe.fig（Figma 互動原型線框稿 v2.2）",
+            "• 6 大空間網格：01 工作區、02 討論板、03 任務牆、04 耍廢室、05 會議室、06 休息區",
+            "• 手機 9:16 單欄直立佈局：頂部隱藏式工具列（☰ 工具列）＋ 3 卡儀表板 ＋ 2x3 房間網格 ＋ 終端機背景活動流",
+            "• 全視窗通知化：所有點擊動作均觸發置中 GamePopupModal（z-index: 10000）",
+          ].join("\n"),
+          "mvp-scope-v2.md": [
+            "【檔案規格】mvp-scope-v2.md（MVP 發布範圍定義書 v2.0 — 策劃「🐱 小橘」主筆）",
+            "• P0 必備交付：辦公室 6 區視覺空間、7 位同事即時狀態與自適應對話框、任務詳情步驟勾選",
+            "• P0 必備交付：處女座監督卡關原因提示、底部終端機背景活動流（>_ office.activity.log）",
+            "• P1 進階交付：HR 人事檔案館（6 大欄位與 SKILL.md 雙向同步）、GitHub Pages 免後端直連 Gemini API",
+          ].join("\n"),
+          "interview-notes.pdf": [
+            "【檔案規格】interview-notes.pdf（核心用戶深度訪談紀錄 — 研究「🧑🏻‍🔬 阿研」整理）",
+            "• 受訪對象：12 位產品總監與獨立開發者",
+            "• 核心痛點：傳統多 Agent 介面只有冰冷的文字 Log，看不出誰在忙、誰卡關、為什麼卡關",
+            "• 關鍵需求：希望像玩經營模擬遊戲一樣俯瞰辦公室，點選角色或工具時跳出乾淨的通知視窗",
+          ].join("\n"),
+          "survey-results.csv": [
+            "【檔案規格】survey-results.csv（126 份有效問卷統計摘要 — 分析師「📊 數據」建模）",
+            "• 樣本數 N = 126（信賴水準 95%，抽樣誤差 ±4.2%）",
+            "• 84.1% 使用者最常在手機上巡視 AI 團隊進度（驗證 9:16 隱藏式工具列之必要性）",
+            "• 18.3% 使用者明確反應「需要第一時間看見代理人卡關原因與待核准附件」",
+          ].join("\n"),
+          "user-interviews.docx": [
+            "【檔案規格】user-interviews.docx（使用者行為觀察與 UX 洞察報告）",
+            "• 洞察 1：背景常駐的終端機單行 Log 能提供安心感，又不會搶走主地圖的視覺焦點",
+            "• 洞察 2：角色擁有鮮明個性背景與專屬頭像時，使用者的任務派發互動率提升 2.4 倍",
+          ].join("\n"),
+        };
+
         return (
           <>
             <h2>▤ {popup.file ? `附件：${popup.file}` : `新增附件至「${task.title}」`}</h2>
             {popup.file ? (
               <>
                 <div className="rpg-output-full">
-                  檔案名稱：{popup.file}{"\n"}
-                  所屬任務：{task.title}{"\n"}
-                  任務目標：{task.goal}
+                  {attachmentSpecs[popup.file] ?? (
+                    `檔案名稱：${popup.file}\n所屬任務：${task.title}\n任務目標：${task.goal}`
+                  )}
                 </div>
                 <div className="modal-actions">
                   <button type="button" className="cancel-button" onClick={onClose}>關閉</button>
