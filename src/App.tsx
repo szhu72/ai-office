@@ -1998,15 +1998,12 @@ function AgentPanel({
   thinkingStage,
   latestThought,
   onSelectTask,
-  onStatus,
   onAction,
   onApprove,
   onFinishTask,
   onMoveZone,
   onOpenStatusPopup,
   onOpenChat,
-  onOpenTools,
-  onOpenOutput,
   onOpenAvatarPicker,
   onOpenEditProfile,
   skillInfo,
@@ -2018,15 +2015,15 @@ function AgentPanel({
   thinkingStage?: string;
   latestThought?: ThoughtRecord;
   onSelectTask: () => void;
-  onStatus: (status: AgentStatus) => void;
+  onStatus?: (status: AgentStatus) => void;
   onAction: (action: "assign" | "context" | "revision") => void;
-  onApprove: () => void;
+  onApprove?: () => void;
   onFinishTask?: (taskId: string) => void;
   onMoveZone?: (zoneId: string) => void;
   onOpenStatusPopup: () => void;
   onOpenChat: () => void;
-  onOpenTools: () => void;
-  onOpenOutput: () => void;
+  onOpenTools?: () => void;
+  onOpenOutput?: () => void;
   onOpenAvatarPicker: () => void;
   onOpenEditProfile: () => void;
   skillInfo?: ColleagueSkillInfo;
@@ -2034,39 +2031,60 @@ function AgentPanel({
 }) {
   const currentZone = officeZones?.find((z) => z.id === agent.zoneId);
   return (
-    <div className="panel-content">
-      <div className="person-heading">
+    <div className="panel-content streamlined-agent-panel">
+      {/* 200px 巨幅相框簡歷舞台 */}
+      <div className="hero-resume-stage">
         <button
           type="button"
-          className={`person-avatar person-avatar-clickable ${agent.role.includes("吉祥物") ? "person-mascot" : ""}`}
+          className={`hero-resume-avatar person-avatar-clickable ${agent.role.includes("吉祥物") ? "person-mascot" : ""}`}
           onClick={onOpenAvatarPicker}
-          title="點擊更換頭像"
+          title="點擊更換頭像 (200px 巨幅相框)"
         >
-          <span className="person-avatar-frame-tag">RESUME</span>
-          <span className="avatar-clip-box">
+          <span className="hero-resume-frame-tag">RESUME</span>
+          <span className="hero-avatar-clip-box">
             <AvatarView avatar={agent.avatar} role={agent.role} />
           </span>
-          <i className={`person-online ${agent.status === "idle" ? "online-idle" : ""}`} />
+          <i className={`hero-online-dot ${agent.status === "idle" ? "online-idle" : ""}`} />
         </button>
-        <div className="person-meta">
-          <h2>
-            <button type="button" className="person-name-popup-btn" onClick={onOpenStatusPopup} title="點擊彈出同事狀態通知視窗">
-              {agent.name} <span>↗</span>
-            </button>
-          </h2>
-          <span>
+
+        <div className="hero-identity-block">
+          <div className="hero-name-row">
+            <h2 className="hero-agent-name">
+              {agent.name}
+              <button
+                type="button"
+                className="hero-status-popup-btn"
+                onClick={onOpenStatusPopup}
+                title="點擊彈出同事詳細檔案通知視窗"
+              >
+                <span>↗</span>
+              </button>
+            </h2>
+            <span className={`status-pill ${statusClasses[agent.status]}`}>
+              <i />{thinkingStage ? "推論中" : statusNames[agent.status]}
+            </span>
+          </div>
+
+          <div className="hero-dept-role">
             {agent.department ? `${agent.department} · ` : ""}{agent.role}
-          </span>
+          </div>
+
           {currentZone && (
             <div className="panel-location-badge">
               📍 {currentZone.name} · {statusNames[agent.status]}
             </div>
           )}
+
+          <div className="hero-bubble-quote" title={latestThought?.thought ? `思考脈絡：${latestThought.thought}` : agent.bubble}>
+            <span className="hero-bubble-icon">{thinkingStage ? "💭" : latestThought?.thought ? "🧠" : "💬"}</span>
+            <span className="hero-bubble-text">
+              {thinkingStage ? thinkingStage : latestThought?.thought ? latestThought.thought : agent.bubble}
+            </span>
+          </div>
         </div>
-        <span className={`status-pill ${statusClasses[agent.status]}`}><i />{thinkingStage ? "推論中" : statusNames[agent.status]}</span>
       </div>
 
-      {/* 4 大即時快捷指揮按鈕（總監戰情副控台） */}
+      {/* 4 大即時核心指揮按鈕（必要按鈕） */}
       <div className="agent-quick-command-bar">
         <button type="button" className="agent-cmd-btn cmd-chat" onClick={onOpenChat} title="與該同事發起對話探班">
           💬 對話探班
@@ -2082,47 +2100,20 @@ function AgentPanel({
         </button>
       </div>
 
-      <div className="character-dialogue-stage">
-        <div
-          className={`attention-note adaptive-dialogue-card ${thinkingStage ? "note-thinking" : agent.status === "blocked" || agent.status === "error" ? "note-warning" : ""}`}
-          onClick={onOpenStatusPopup}
-          role="button"
-          tabIndex={0}
-          style={{ cursor: "pointer" }}
-          title="點擊彈出同事狀態通知視窗"
-        >
-          <span className="note-icon">{thinkingStage ? "💭" : agent.status === "blocked" || agent.status === "error" ? "!" : "💬"}</span>
-          <div className="adaptive-dialogue-body">
-            <strong>{thinkingStage ? thinkingStage : `${agent.name}：「${agent.bubble}」`}</strong>
-            {latestThought && !thinkingStage && (
-              <p>🧠 {latestThought.thought}</p>
-            )}
-            {agent.positioning && (
-              <p className="agent-specialty-tag">🧭 定位：{agent.positioning}</p>
-            )}
-            {agent.specialty && (
-              <p className="agent-specialty-tag">🎯 專長：{agent.specialty}</p>
-            )}
-            {agent.personality && (
-              <p className="agent-personality-tag">📖 個性背景：{agent.personality}</p>
-            )}
+      {/* 當前任務進度與結束任務（必要按鈕） */}
+      {task && (
+        <div className="hero-task-strip" onClick={onSelectTask} role="button" tabIndex={0}>
+          <div className="hero-task-strip-head">
+            <span className="hero-task-tag">⌁ 當前任務</span>
+            <span className="hero-task-title" title={task.title}>{task.title}</span>
+            <span className="hero-task-pct">{agent.progress}%</span>
           </div>
-        </div>
-      </div>
-
-      <PanelSection title="正在處理" action="詳情視窗" onAction={onSelectTask}>
-        <div className="current-task-card" onClick={onSelectTask} role="button" tabIndex={0}>
-          <div className="task-card-top"><span className="task-category">任務</span><span className="task-due">◷ {task.due}</span></div>
-          <strong>{task.title}</strong>
-          <span className="task-card-description">{task.goal}</span>
           <ProgressBar value={agent.progress} />
-          <div className="progress-caption">
-            <span>進度 <strong>{agent.progress}%</strong></span>
-            {task.status !== "已核准" && task.status !== "已結束" && onFinishTask && (
+          {task.status !== "已核准" && task.status !== "已結束" && onFinishTask && (
+            <div className="hero-task-actions">
               <button
                 type="button"
                 className="tw-finish-btn"
-                style={{ marginLeft: 8 }}
                 onClick={(e) => {
                   e.stopPropagation();
                   onFinishTask(task.id);
@@ -2131,50 +2122,38 @@ function AgentPanel({
               >
                 🏁 結束任務
               </button>
-            )}
-          </div>
+              <button
+                type="button"
+                className="secondary-task-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelectTask();
+                }}
+              >
+                查看步驟 ↗
+              </button>
+            </div>
+          )}
         </div>
-      </PanelSection>
+      )}
 
-      <PanelSection title="最近工具" action="紀錄視窗" onAction={onOpenTools}>
-        <div className="tool-list">
-          {agent.tools.slice(0, 3).map((tool, idx) => (
-            <button
-              type="button"
-              className="tool-row tool-row-clickable"
-              key={`${tool.name}-${tool.time}-${idx}`}
-              onClick={onOpenTools}
-            >
-              <span className={`tool-mark tool-${tool.kind}`}>{tool.kind === "success" ? "✓" : tool.kind === "warning" ? "!" : "↻"}</span>
-              <div className="tool-copy"><strong>{tool.name}</strong><span>{tool.detail}</span></div>
-              <time>{tool.time}</time>
-            </button>
-          ))}
-        </div>
-      </PanelSection>
-
-      <PanelSection title="最新對話與產出" action="展開視窗" onAction={onOpenOutput}>
-        <button type="button" className="output-card output-card-clickable adaptive-output-card" onClick={onOpenOutput}>
-          <span className="output-quote">“</span>
-          <p>{agent.latestOutput}</p>
+      {/* 簡化實用操作（必要按鈕） */}
+      <div className="hero-utility-actions">
+        <button type="button" className="hero-util-btn" onClick={onOpenEditProfile}>
+          <span>✎</span> 編輯資訊
         </button>
-      </PanelSection>
-
-      <PanelSection title="更多操作" action="狀態視窗" onAction={onOpenStatusPopup}>
-        <div className="quick-actions">
-          <button type="button" className="quick-stop" onClick={() => onStatus(agent.status === "idle" ? "thinking" : "idle")}>
-            <span>■</span> {agent.status === "idle" ? "喚醒工作" : "請去休息"}
+        <button type="button" className="hero-util-btn" onClick={onOpenAvatarPicker}>
+          <span>🖼️</span> 更換頭像
+        </button>
+        <button type="button" className="hero-util-btn" onClick={onOpenSkill} title={skillInfo?.skillName ?? "SKILL.md"}>
+          <span>📘</span> 技能規範
+        </button>
+        {onApprove && (
+          <button type="button" className="hero-util-btn hero-util-approve" onClick={onApprove} title="核准結案">
+            <span>✓</span> 核准結案
           </button>
-          <button type="button" onClick={onOpenEditProfile}><span>✎</span> 編輯個人資訊</button>
-          <button type="button" onClick={() => onAction("context")}><span>＋</span> 補充資料</button>
-          <button type="button" onClick={() => onAction("revision")}><span>↻</span> 要求修改</button>
-          <button type="button" className="quick-approve" onClick={onApprove}><span>✓</span> 核准結案</button>
-          <button type="button" onClick={onOpenAvatarPicker}><span>🖼️</span> 更換頭像</button>
-          <button type="button" onClick={onOpenSkill} title={skillInfo?.skillName ?? "SKILL.md"}>
-            <span>📘</span> 編輯 Skill
-          </button>
-        </div>
-      </PanelSection>
+        )}
+      </div>
     </div>
   );
 }
