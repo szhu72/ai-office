@@ -472,15 +472,120 @@ button:focus-visible, select:focus-visible, textarea:focus-visible {
 }
 .more-button { width: 25px; height: 24px; border: 0; background: transparent; color: #999487; font-size: 18px; line-height: 1; cursor: pointer; }
 .panel-content { min-height: 0; flex: 1; overflow: auto; scrollbar-color: #d6d1c5 transparent; scrollbar-width: thin; }
-.person-heading { display: flex; align-items: center; padding: 13px 15px 11px; }
-.person-avatar { position: relative; display: grid; width: 41px; height: 41px; flex: 0 0 41px; place-items: center; border: 1px solid #eadbc1; border-radius: 5px; background: #f3ead6; font-size: 23px; }
+.person-heading {
+  display: flex;
+  align-items: center;
+  padding: 13px 14px 11px;
+  gap: 12px;
+  background: linear-gradient(180deg, #fffefc 0%, #f7f3eb 100%);
+  border-bottom: 1px solid #ebe4d5;
+}
+.person-avatar {
+  position: relative;
+  display: grid;
+  width: 76px !important;
+  height: 76px !important;
+  flex: 0 0 76px !important;
+  place-items: center;
+  border: 2.5px solid #282b2b !important;
+  border-radius: 10px !important;
+  background: #f4ede1 !important;
+  box-shadow: 3px 3px 0 rgba(40, 43, 43, 0.22), inset 0 0 0 2px #fff8ed !important;
+  font-size: 44px !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+  cursor: pointer;
+  transition: transform .14s ease, border-color .14s ease, box-shadow .14s ease;
+  overflow: visible !important;
+}
+.person-avatar:hover {
+  transform: translateY(-2px) scale(1.02);
+  border-color: var(--orange) !important;
+  box-shadow: 4px 5px 0 rgba(238, 108, 41, 0.26), inset 0 0 0 2px #fff !important;
+}
+.person-avatar .avatar-clip-box {
+  width: 100%;
+  height: 100%;
+  border-radius: 7px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.person-avatar .custom-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 7px;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+.person-avatar-frame-tag {
+  position: absolute;
+  top: -7px;
+  left: 6px;
+  z-index: 3;
+  background: #282b2b;
+  color: #fff9ed;
+  font-size: 8px;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 3px;
+  letter-spacing: 0.6px;
+  pointer-events: none;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
 .person-mascot { background: #f7efe0; }
-.person-online { position: absolute; right: -2px; bottom: -2px; width: 11px; height: 11px; border: 2px solid #fbfaf6; border-radius: 50%; background: #72a178; }
+.person-online {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 14px;
+  height: 14px;
+  border: 2.5px solid #fffdf8;
+  border-radius: 50%;
+  background: #72a178;
+  z-index: 3;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
 .person-online.online-idle { background: #7aa6b3; }
-.person-meta { min-width: 0; flex: 1; margin-left: 9px; }
-.person-meta h2 { overflow: hidden; margin: 0 0 3px; font-size: 15px; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
-.person-meta > span { color: #89867c; font-size: 9px; }
+.person-meta {
+  min-width: 0;
+  flex: 1;
+  margin-left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.person-meta h2 {
+  overflow: hidden;
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.person-meta > span {
+  color: #635f54;
+  font-size: 9.5px;
+  line-height: 1.35;
+}
 .person-meta > span i { display: inline-block; width: 3px; height: 3px; margin: 0 4px 2px; border-radius: 50%; background: #aaa598; }
+.panel-location-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 3px;
+  padding: 2px 7px;
+  background: #f1ebdE;
+  border: 1px solid #dcd1bd;
+  border-radius: 3px;
+  font-size: 9.5px;
+  font-weight: 600;
+  color: #4c4639;
+  width: fit-content;
+}
 .status-pill { display: inline-flex; height: 21px; align-items: center; gap: 5px; padding: 0 7px; border: 1px solid #dbe8d9; border-radius: 2px; background: #eff5ec; color: #638063; font-size: 8px; white-space: nowrap; }
 .status-pill i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
 .status-idle { border-color: #dce8e7; background: #eef4f3; color: #648993; }
@@ -1063,24 +1168,50 @@ button:focus-visible, select:focus-visible, textarea:focus-visible {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  flex: 0 0 68px;
+  gap: 5px;
+  flex: 0 0 92px;
   text-align: center;
 }
 .rpg-speaker-avatar {
+  position: relative;
   display: grid;
-  width: 52px;
-  height: 52px;
+  width: 78px !important;
+  height: 78px !important;
   place-items: center;
   overflow: hidden;
-  border: 2px solid #282b2b;
-  border-radius: 8px;
-  background: #f3ead6;
-  box-shadow: 2px 3px 0 rgba(40,43,43,.18);
-  font-size: 28px;
+  border: 2.5px solid #282b2b !important;
+  border-radius: 10px !important;
+  background: #f4ede1 !important;
+  box-shadow: 3px 3px 0 rgba(40, 43, 43, 0.22), inset 0 0 0 2px #fff8ed !important;
+  font-size: 44px !important;
+  cursor: pointer;
+  transition: transform .14s, border-color .14s, box-shadow .14s;
 }
-.rpg-speaker-portrait strong { font-size: 10px; color: #2c2b25; }
-.rpg-speaker-portrait span { font-size: 8px; color: #79756a; }
+.rpg-speaker-avatar:hover {
+  transform: translateY(-2px) scale(1.02);
+  border-color: var(--orange) !important;
+  box-shadow: 4px 5px 0 rgba(238, 108, 41, 0.26), inset 0 0 0 2px #fff !important;
+}
+.rpg-speaker-avatar .avatar-clip-box {
+  width: 100%;
+  height: 100%;
+  border-radius: 7px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rpg-speaker-avatar .custom-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 7px;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+.rpg-speaker-portrait strong { font-size: 11px; color: #2c2b25; margin-top: 2px; }
+.rpg-speaker-portrait span { font-size: 8.5px; color: #6d695d; }
 .rpg-dialogue-bubble-adaptive {
   position: relative;
   flex: 1;
@@ -1410,7 +1541,6 @@ button:focus-visible, select:focus-visible, textarea:focus-visible {
 }
 .person-avatar {
   padding: 0 !important;
-  font-size: 21px !important;
   line-height: 1 !important;
 }
 .assignee-avatar {

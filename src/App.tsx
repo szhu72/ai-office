@@ -2042,6 +2042,7 @@ function AgentPanel({
           onClick={onOpenAvatarPicker}
           title="點擊更換頭像"
         >
+          <span className="person-avatar-frame-tag">RESUME</span>
           <span className="avatar-clip-box">
             <AvatarView avatar={agent.avatar} role={agent.role} />
           </span>
@@ -2875,7 +2876,9 @@ function GamePopupModal({
                     onNavigatePopup({ kind: "avatar-picker", agentId: agent.id });
                   }}
                 >
-                  <AvatarView avatar={agent.avatar} role={agent.role} />
+                  <span className="avatar-clip-box">
+                    <AvatarView avatar={agent.avatar} role={agent.role} />
+                  </span>
                 </button>
                 <strong>{agent.name}</strong>
                 <span>{agent.department ?? agent.role}</span>
@@ -3447,7 +3450,9 @@ function GamePopupModal({
             <div className="rpg-dialogue-stage">
               <div className="rpg-speaker-portrait">
                 <div className="rpg-speaker-avatar">
-                  <AvatarView avatar={agent.avatar} role={agent.role} />
+                  <span className="avatar-clip-box">
+                    <AvatarView avatar={agent.avatar} role={agent.role} />
+                  </span>
                 </div>
                 <strong>{agent.name}</strong>
                 <span>{agent.role}</span>
