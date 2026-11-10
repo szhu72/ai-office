@@ -3110,5 +3110,97 @@ button:focus-visible, select:focus-visible, textarea:focus-visible {
   }
 }
 
+/* ============================================================================
+ * Dual-Mode: Auto-Save Work Mode & Demo Presentation Sandbox
+ * ============================================================================ */
+.mode-switch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  transition: all .15s ease;
+}
+.mode-btn-work {
+  background: #fbfaf6;
+  border-color: #282b2b;
+}
+.mode-btn-work:hover {
+  background: #edf7ed;
+  border-color: #2e7d32;
+}
+.mode-btn-demo {
+  background: #fff4e5;
+  border-color: #ee6c29;
+  color: #c05621;
+}
+.mode-btn-demo:hover {
+  background: #feebc8;
+}
+
+.demo-mode-alert-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 8px 16px;
+  margin-bottom: 12px;
+  background: linear-gradient(90deg, #fffaf0 0%, #feebc8 100%);
+  border: 1.5px dashed #dd6b20;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(221, 107, 32, 0.12);
+  animation: fadeInAlert 0.25s ease-out;
+}
+@keyframes fadeInAlert {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.demo-bar-badge {
+  background: #dd6b20;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+.demo-bar-desc {
+  font-size: 12px;
+  color: #7b341e;
+  flex: 1 1 auto;
+}
+.demo-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.demo-bar-btn {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.12s;
+}
+.demo-bar-reset {
+  background: #fff;
+  border-color: #dd6b20;
+  color: #c05621;
+}
+.demo-bar-reset:hover {
+  background: #fbd38d;
+}
+.demo-bar-exit {
+  background: #282b2b;
+  color: #fff;
+  border-color: #282b2b;
+}
+.demo-bar-exit:hover {
+  background: #ee6c29;
+  border-color: #ee6c29;
+}
+
+
 
 

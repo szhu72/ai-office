@@ -890,6 +890,27 @@ function App() {
         <div className="topbar-right">
           {!mobile916 && (
             <div className="topbar-desktop-tools">
+            {office.mode === "demo" ? (
+              <button
+                type="button"
+                className="secondary-top-button mode-switch-btn mode-btn-demo"
+                onClick={() => officeDataSource.dispatch({ type: "workspace.setMode", mode: "work" })}
+                title="目前處於展示沙盒模式（操作不影響正式作業存檔）。點擊一鍵返回正式作業進度。"
+              >
+                <span className="live-dot" style={{ background: "#ee6c29" }} />
+                🎪 展示沙盒 ➔ <strong>返回作業</strong>
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="secondary-top-button mode-switch-btn mode-btn-work"
+                onClick={() => officeDataSource.dispatch({ type: "workspace.setMode", mode: "demo" })}
+                title={`目前處於正式作業模式（所有工位、步驟與任務已自動即時存檔${office.lastSavedAt ? `：${office.lastSavedAt}` : ""}）。點擊可進入安全展示模式供他人試玩。`}
+              >
+                <span className="live-dot" style={{ background: "#38a169" }} />
+                💼 作業存檔中 <small style={{ opacity: 0.85 }}>({office.lastSavedAt || "已同步"})</small>
+              </button>
+            )}
             <button
               type="button"
               className="secondary-top-button"
@@ -1007,6 +1028,30 @@ function App() {
       </header>
 
       <main className="workspace">
+        {office.mode === "demo" && (
+          <div className="demo-mode-alert-bar">
+            <span className="demo-bar-badge">🎪 展示沙盒模式</span>
+            <span className="demo-bar-desc">此模式供他人試玩體驗，所有操作皆為沙盒環境，<strong>不會覆蓋您的日常作業存檔</strong>。</span>
+            <div className="demo-bar-actions">
+              <button
+                type="button"
+                className="demo-bar-btn demo-bar-reset"
+                onClick={() => officeDataSource.dispatch({ type: "workspace.resetDemo" })}
+                title="重新整理展示劇本"
+              >
+                ↺ 重整展示劇本
+              </button>
+              <button
+                type="button"
+                className="demo-bar-btn demo-bar-exit"
+                onClick={() => officeDataSource.dispatch({ type: "workspace.setMode", mode: "work" })}
+                title="返回我的正式作業存檔"
+              >
+                ✓ 切回我的作業存檔 ➔
+              </button>
+            </div>
+          </div>
+        )}
         <div className="overview-row workspace-overview">
           <div className="overview-title-block">
             <h1>{uiPatch?.headline || "早安，總監"} <span className="wave">✳</span></h1>
@@ -2675,6 +2720,22 @@ function GamePopupModal({
           <>
             <h2>☰ 辦公室控制工具列（跳出式選單）</h2>
             <div className="toolbar-menu-grid">
+              <button
+                type="button"
+                className={`toolbar-menu-card ${office.mode === "demo" ? "mode-card-demo" : "mode-card-work"}`}
+                onClick={() => {
+                  officeDataSource.dispatch({
+                    type: "workspace.setMode",
+                    mode: office.mode === "demo" ? "work" : "demo",
+                  });
+                  onClose();
+                }}
+              >
+                <span className="toolbar-menu-icon">{office.mode === "demo" ? "🎪" : "💼"}</span>
+                <strong>{office.mode === "demo" ? "🎪 展示模式（點擊切回作業）" : "💼 作業模式（點擊切至展示沙盒）"}</strong>
+                <small>{office.mode === "demo" ? "目前為沙盒環境，點此滿血返回您的日常作業" : "日常已自動存檔，點此切換為借人試玩沙盒"}</small>
+              </button>
+
               <button
                 type="button"
                 className="toolbar-menu-card"

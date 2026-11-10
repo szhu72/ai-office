@@ -77,12 +77,16 @@ export interface MeetingSummary {
   humanConfirmations: string[];
 }
 
+export type OfficeWorkspaceMode = "work" | "demo";
+
 export interface OfficeState {
   agents: Agent[];
   tasks: OfficeTask[];
   zones: Zone[];
   events: ActivityEvent[];
   meeting: MeetingSummary;
+  mode?: OfficeWorkspaceMode;
+  lastSavedAt?: string;
 }
 
 export type PanelSelection =
