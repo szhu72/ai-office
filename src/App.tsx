@@ -34,14 +34,6 @@ const statusClasses: Record<AgentStatus, string> = {
   error: "status-error",
 };
 
-const eventIcons: Record<ActivityEvent["type"], string> = {
-  tool: "⌘",
-  file: "▧",
-  message: "✳",
-  error: "!",
-  handoff: "↗",
-};
-
 export interface ThoughtRecord {
   id: string;
   agentId: string;
@@ -59,11 +51,16 @@ export interface ThoughtRecord {
 }
 
 type GamePopup =
+  | { kind: "toolbar-menu" }
   | { kind: "director" }
   | { kind: "summary-active" }
   | { kind: "summary-tasks" }
   | { kind: "summary-blocked" }
   | { kind: "zone"; zoneId: string }
+  | { kind: "agent-status"; agentId: string }
+  | { kind: "team-decisions" }
+  | { kind: "task-detail"; taskId: string }
+  | { kind: "hr-roster" }
   | { kind: "agent-chat"; agentId: string }
   | { kind: "agent-tools"; agentId: string }
   | { kind: "agent-output"; agentId: string }
@@ -81,7 +78,7 @@ type GamePopup =
 
 const AVATAR_PRESETS = [
   "💼", "🔬", "👩🏻‍💻", "👨🏻‍💼", "‍⚖️", "🕵🏻‍♂️", "🧙🏻‍♀️", "🦸🏻‍♂️",
-  "👩🏻‍🎨", "🧑🏻‍🚀", "🥷🏻", "🤖", "🦊", "🐱", "🐼", "🦉",
+  "👩🏻‍🎨", "🚀", "🥷🏻", "🤖", "🦊", "🐱", "🐼", "🦉",
   "🦁", "🐸", "🐶", "🦄", "👾", "🎮", "💎", "⚡",
 ];
 
@@ -176,22 +173,28 @@ function App() {
   const [newAgentForm, setNewAgentForm] = useState({
     name: "",
     role: "",
+    department: "",
+    positioning: "",
     avatar: "🕵🏻‍♂️",
     zoneId: "work",
     status: "thinking" as AgentStatus,
     bubble: "隨時準備支援團隊！",
     specialty: "",
+    personality: "",
     initialTask: "",
   });
   const [editAgentForm, setEditAgentForm] = useState({
     id: "planner",
     name: "",
     role: "",
+    department: "",
+    positioning: "",
     avatar: "🧑🏻‍💼",
     zoneId: "work",
     status: "thinking" as AgentStatus,
     bubble: "",
     specialty: "",
+    personality: "",
     latestOutput: "",
   });
   const [skillsMap, setSkillsMap] = useState<Record<string, ColleagueSkillInfo>>({});
@@ -545,7 +548,11 @@ function App() {
   const submitCreateAgent = () => {
     const name = newAgentForm.name.trim() || `新同事${office.agents.length + 1}`;
     const role = newAgentForm.role.trim() || "專案顧問";
+    const department = newAgentForm.department.trim() || `${role}專業部門`;
+    const positioning = newAgentForm.positioning.trim() || `${role} ／ 專案核心協力夥伴`;
     const avatar = newAgentForm.avatar.trim() || "🧑🏻‍💻";
+    const specialty = newAgentForm.specialty.trim() || `以「${role}」專業視角執行任務、分析問題並提供高品質交付成果`;
+    const personality = newAgentForm.personality.trim() || `充滿熱忱、自主性極高的「${name}」，總能從「${role}」專業切入點提供可靠支援。`;
     const id = `custom-${Date.now()}`;
     const taskId = newAgentForm.initialTask.trim() ? `task-${Date.now()}` : office.tasks[0].id;
     const newTask: OfficeTask | undefined = newAgentForm.initialTask.trim()
@@ -569,13 +576,17 @@ function App() {
       id,
       name,
       role,
+      department,
+      positioning,
       avatar,
       status: newAgentForm.status,
       taskId,
       progress: 25,
       zoneId: newAgentForm.zoneId,
       bubble: newAgentForm.bubble.trim() || "報到完畢！",
-      latestOutput: `嗨總監！我是新加入的「${name}」（負責：${role}），已經進駐辦公室隨時待命。`,
+      specialty,
+      personality,
+      latestOutput: `嗨總監！我是新加入的「${name}」（職能：${department}｜定位：${positioning}），已經進駐辦公室隨時待命。`,
       tools: [
         { name: "agent.onboard", detail: `以「${role}」身分報到`, time: nowShortClock(), kind: "success" },
       ],
@@ -587,15 +598,12 @@ function App() {
       task: newTask,
       event: createEvent(id, "handoff", `新角色「${name}（${role}）」加入團隊並建立專屬 Skill`, newAgent.latestOutput),
     });
-    void saveCustomAgentApi({
-      ...newAgent,
-      ...(newAgentForm.specialty.trim() ? { specialty: newAgentForm.specialty.trim() } : {}),
-    } as Agent).then(async () => {
+    void saveCustomAgentApi(newAgent).then(async () => {
       const updatedSkills = await fetchColleagueSkills();
       setSkillsMap(updatedSkills);
     });
     setSelection({ kind: "agent", id });
-    setPopup(null);
+    setPopup({ kind: "agent-status", agentId: id });
 
     if (newAgentForm.initialTask.trim()) {
       void runAgent(newAgent, newAgentForm.initialTask.trim(), { taskId });
@@ -603,11 +611,14 @@ function App() {
     setNewAgentForm({
       name: "",
       role: "",
+      department: "",
+      positioning: "",
       avatar: "🕵🏻‍♂️",
       zoneId: "work",
       status: "thinking",
       bubble: "隨時準備支援團隊！",
       specialty: "",
+      personality: "",
       initialTask: "",
     });
   };
@@ -620,11 +631,14 @@ function App() {
       id: agent.id,
       name: agent.name,
       role: agent.role,
+      department: agent.department ?? parsedFromSkill.department ?? `${agent.role}專業部門`,
+      positioning: agent.positioning ?? parsedFromSkill.positioning ?? `${agent.role} ／ 專案核心協力夥伴`,
       avatar: agent.avatar,
       zoneId: agent.zoneId,
       status: agent.status,
       bubble: agent.bubble,
       specialty: agent.specialty ?? parsedFromSkill.specialty ?? `以「${agent.role}」專業視角執行任務、分析問題並提供高品質交付成果`,
+      personality: agent.personality ?? parsedFromSkill.personality ?? `認真負責、充滿熱忱的辦公室夥伴，總是以「${agent.name}」的專業觀點協助總監解決難題。`,
       latestOutput: agent.latestOutput,
     });
     setPopup({ kind: "agent-edit", agentId: agent.id });
@@ -637,11 +651,14 @@ function App() {
     const patch: Partial<Agent> = {
       name: editAgentForm.name.trim() || target.name,
       role: editAgentForm.role.trim() || target.role,
+      department: editAgentForm.department.trim() || target.department,
+      positioning: editAgentForm.positioning.trim() || target.positioning,
       avatar: editAgentForm.avatar.trim() || target.avatar,
       zoneId: editAgentForm.zoneId || target.zoneId,
       status: editAgentForm.status || target.status,
       bubble: editAgentForm.bubble.trim() || target.bubble,
       specialty: editAgentForm.specialty.trim() || target.specialty,
+      personality: editAgentForm.personality.trim() || target.personality,
       latestOutput: editAgentForm.latestOutput.trim() || target.latestOutput,
     };
 
@@ -653,7 +670,7 @@ function App() {
         target.id,
         "file",
         `已更新角色個人資訊：${patch.name}（${patch.role}）`,
-        `頭頂對話：「${patch.bubble}」｜專長：${patch.specialty ?? ""}`,
+        `職能：${patch.department ?? ""}｜定位：${patch.positioning ?? ""}｜專長：${patch.specialty ?? ""}`,
       ),
     });
 
@@ -679,7 +696,7 @@ function App() {
       setSkillsMap(refreshed);
     }
     setSelection({ kind: "agent", id: target.id });
-    setPopup(null);
+    setPopup({ kind: "agent-status", agentId: target.id });
   };
 
   // Run one round of autonomous office simulation across active agents
@@ -786,90 +803,111 @@ function App() {
           </div>
         </div>
         <div className="topbar-right">
-          <button
-            type="button"
-            className="secondary-top-button"
-            onClick={() => {
-              setPopup({ kind: "api-key" });
-              setPopupInput(browserApiKey);
-            }}
-            title="設定手機 / GitHub Pages 瀏覽器端直連 Gemini API Key"
-          >
-            🔑 {browserApiKey ? "金鑰已設" : "金鑰"}
-          </button>
-          <button
-            type="button"
-            className={`secondary-top-button ${mobile916 ? "hud-pulsing" : ""}`}
-            onClick={() => setMobile916((v) => !v)}
-            title="切換 9:16 手機直向介面與桌機寬螢幕"
-          >
-            {mobile916 ? "🖥️ 桌機" : "📱 9:16"}
-          </button>
-          <button
-            type="button"
-            className="secondary-top-button ui-studio-btn"
-            onClick={() => { setPopup({ kind: "ui-studio" }); setPopupInput(""); }}
-            title="調整網站外觀與排版"
-          >
-            🎨 改介面
-          </button>
-          <button
-            type="button"
-            className="secondary-top-button"
-            onClick={() => setPopup({ kind: "agent-create" })}
-            title="招募新 AI 角色"
-          >
-            🧑🏻‍🎨 ＋新角色
-          </button>
-          <button
-            type="button"
-            className="secondary-top-button"
-            onClick={() => openEditAgent(selectedAgent ?? office.agents[0])}
-            title="編輯目前選取角色的名稱、職稱、對話氣泡、頭像與專長"
-          >
-            ✎ 角色設定
-          </button>
-          <button
-            type="button"
-            className="secondary-top-button"
-            onClick={() => {
-              const targetId = selectedAgent?.id ?? office.agents[0].id;
-              setPopup({ kind: "skill-viewer", agentId: targetId });
-              setPopupInput(skillsMap[targetId]?.content ?? "");
-            }}
-            title="檢視或編輯每位同事的 SKILL.md 技能包"
-          >
-            📘 Skills ({Object.keys(skillsMap).length || office.agents.length})
-          </button>
-          <button
-            type="button"
-            className={`hud-toggle-button ${anyRunning ? "hud-pulsing" : ""}`}
-            onClick={() => { setShowMonitor(true); setMonitorMinimized(false); }}
-            title="開啟 AI 思考狀態監控窗"
-          >
-            <span className="live-dot" />
-            🧠 {anyRunning ? `${Object.keys(thinkingAgents).length} 思考中` : thoughts.length}
-          </button>
-          <button
-            type="button"
-            className="secondary-top-button"
-            onClick={runOfficeRound}
-            disabled={anyRunning}
-            title="讓正在工作的 AI 同事自動推進一回合"
-          >
-            ⚡ {anyRunning ? "推論中…" : "推進"}
-          </button>
-          <button
-            type="button"
-            className="secondary-top-button"
-            onClick={() => { setPopup({ kind: "director" }); setPopupInput(""); }}
-            title="開啟總監指令台"
-          >
-            🎮 指令台
-          </button>
-          <button className="primary-button assign-button" onClick={() => setModal("assign")}>
-            <span>＋</span> 派任務
-          </button>
+          <div className="topbar-desktop-tools">
+            <button
+              type="button"
+              className="secondary-top-button"
+              onClick={() => {
+                setPopup({ kind: "api-key" });
+                setPopupInput(browserApiKey);
+              }}
+              title="設定手機 / GitHub Pages 瀏覽器端直連 Gemini API Key"
+            >
+              🔑 {browserApiKey ? "金鑰已設" : "金鑰"}
+            </button>
+            <button
+              type="button"
+              className={`secondary-top-button ${mobile916 ? "hud-pulsing" : ""}`}
+              onClick={() => setMobile916((v) => !v)}
+              title="切換 9:16 手機直向介面與桌機寬螢幕"
+            >
+              {mobile916 ? "🖥️ 桌機" : "📱 9:16"}
+            </button>
+            <button
+              type="button"
+              className="secondary-top-button ui-studio-btn"
+              onClick={() => { setPopup({ kind: "ui-studio" }); setPopupInput(""); }}
+              title="調整網站外觀與排版"
+            >
+              🎨 改介面
+            </button>
+            <button
+              type="button"
+              className="secondary-top-button"
+              onClick={() => setPopup({ kind: "hr-roster" })}
+              title="開啟 HR 人事檔案館與同事完整背景 Docs"
+            >
+              🪪 HR 檔案 ({office.agents.length})
+            </button>
+            <button
+              type="button"
+              className="secondary-top-button"
+              onClick={() => setPopup({ kind: "agent-create" })}
+              title="招募新 AI 角色"
+            >
+              🧑🏻‍🎨 ＋新角色
+            </button>
+            <button
+              type="button"
+              className="secondary-top-button"
+              onClick={() => openEditAgent(selectedAgent ?? office.agents[0])}
+              title="編輯目前選取角色的名稱、職能、定位、頭像、專長與個性背景"
+            >
+              ✎ 角色設定
+            </button>
+            <button
+              type="button"
+              className="secondary-top-button"
+              onClick={() => {
+                const targetId = selectedAgent?.id ?? office.agents[0].id;
+                setPopup({ kind: "skill-viewer", agentId: targetId });
+                setPopupInput(skillsMap[targetId]?.content ?? "");
+              }}
+              title="檢視或編輯每位同事的 SKILL.md 技能包"
+            >
+              📘 Skills ({Object.keys(skillsMap).length || office.agents.length})
+            </button>
+            <button
+              type="button"
+              className={`hud-toggle-button ${anyRunning ? "hud-pulsing" : ""}`}
+              onClick={() => { setShowMonitor(true); setMonitorMinimized(false); }}
+              title="開啟 AI 思考狀態監控窗"
+            >
+              <span className="live-dot" />
+              🧠 {anyRunning ? `${Object.keys(thinkingAgents).length} 思考中` : thoughts.length}
+            </button>
+            <button
+              type="button"
+              className="secondary-top-button"
+              onClick={runOfficeRound}
+              disabled={anyRunning}
+              title="讓正在工作的 AI 同事自動推進一回合"
+            >
+              ⚡ {anyRunning ? "推論中…" : "推進"}
+            </button>
+            <button
+              type="button"
+              className="secondary-top-button"
+              onClick={() => { setPopup({ kind: "director" }); setPopupInput(""); }}
+              title="開啟總監指令台"
+            >
+              🎮 指令台
+            </button>
+          </div>
+
+          <div className="topbar-compact-actions">
+            <button
+              type="button"
+              className="secondary-top-button mobile-toolbar-trigger"
+              onClick={() => setPopup({ kind: "toolbar-menu" })}
+              title="點擊彈出完整工具列選單視窗"
+            >
+              ☰ 工具列
+            </button>
+            <button className="primary-button assign-button" onClick={() => setModal("assign")}>
+              <span>＋</span> 派任務
+            </button>
+          </div>
         </div>
       </header>
 
@@ -927,11 +965,25 @@ function App() {
             office={office}
             selectedAgentId={selectedAgent?.id}
             thinkingAgents={thinkingAgents}
-            onSelectAgent={(id) => setSelection({ kind: "agent", id })}
-            onOpenAgentChat={(id) => { setSelection({ kind: "agent", id }); setPopup({ kind: "agent-chat", agentId: id }); setPopupInput(""); }}
-            onSelectTask={(id) => setSelection({ kind: "task", id })}
+            onSelectAgent={(id) => {
+              setSelection({ kind: "agent", id });
+              setPopup({ kind: "agent-status", agentId: id });
+            }}
+            onOpenAgentChat={(id) => {
+              setSelection({ kind: "agent", id });
+              setPopup({ kind: "agent-chat", agentId: id });
+              setPopupInput("");
+            }}
+            onSelectTask={(id) => {
+              setSelection({ kind: "task", id });
+              setPopup({ kind: "task-detail", taskId: id });
+            }}
             onSelectZone={(zoneId) => {
-              if (zoneId === "meeting") setSelection({ kind: "meeting" });
+              if (zoneId === "meeting") {
+                setSelection({ kind: "meeting" });
+                setPopup({ kind: "team-decisions" });
+                return;
+              }
               setPopup({ kind: "zone", zoneId });
             }}
           />
@@ -942,12 +994,27 @@ function App() {
               <button type="button" onClick={() => { setShowMonitor(true); setMonitorMinimized(false); }}>
                 🧠 思考監控 ({thoughts.length})
               </button>
+              <button
+                type="button"
+                onClick={() => setPopup({ kind: "agent-status", agentId: selectedAgent?.id ?? office.agents[0].id })}
+              >
+                👤 同事狀態 <span>↗</span>
+              </button>
             </div>
             <div className="scene-footer-actions">
+              <button type="button" onClick={() => setPopup({ kind: "hr-roster" })}>
+                🪪 HR 檔案館 <span>↗</span>
+              </button>
               <button type="button" onClick={() => { setPopup({ kind: "meeting-brainstorm" }); setPopupInput(""); }}>
                 🧠 腦力激盪 <span>↗</span>
               </button>
-              <button type="button" onClick={() => setSelection({ kind: "meeting" })}>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelection({ kind: "meeting" });
+                  setPopup({ kind: "team-decisions" });
+                }}
+              >
                 📋 團隊決策 <span>↗</span>
               </button>
             </div>
@@ -956,7 +1023,40 @@ function App() {
 
         <aside className="side-panel" aria-label="選取項目的詳細資訊">
           <div className="panel-topline">
-            <span>{selection?.kind === "meeting" ? "團隊同步" : selection?.kind === "task" ? "任務詳情" : "同事狀態"}</span>
+            <div className="panel-topline-tabs">
+              <button
+                type="button"
+                className={`panel-tab-btn ${selection?.kind === "agent" ? "panel-tab-active" : ""}`}
+                onClick={() => {
+                  const targetId = selectedAgent?.id ?? office.agents[0].id;
+                  setSelection({ kind: "agent", id: targetId });
+                  setPopup({ kind: "agent-status", agentId: targetId });
+                }}
+              >
+                👤 同事狀態 ↗
+              </button>
+              <button
+                type="button"
+                className={`panel-tab-btn ${selection?.kind === "meeting" ? "panel-tab-active" : ""}`}
+                onClick={() => {
+                  setSelection({ kind: "meeting" });
+                  setPopup({ kind: "team-decisions" });
+                }}
+              >
+                📋 團隊決策 ↗
+              </button>
+              <button
+                type="button"
+                className={`panel-tab-btn ${selection?.kind === "task" ? "panel-tab-active" : ""}`}
+                onClick={() => {
+                  const targetTask = selectedTask ?? activeTask ?? office.tasks[0];
+                  setSelection({ kind: "task", id: targetTask.id });
+                  setPopup({ kind: "task-detail", taskId: targetTask.id });
+                }}
+              >
+                ⌁ 任務詳情 ↗
+              </button>
+            </div>
             <button
               type="button"
               className="more-button"
@@ -973,10 +1073,14 @@ function App() {
               task={activeTask}
               thinkingStage={thinkingAgents[selectedAgent.id]}
               latestThought={thoughts.find((t) => t.agentId === selectedAgent.id)}
-              onSelectTask={() => setSelection({ kind: "task", id: activeTask.id })}
+              onSelectTask={() => {
+                setSelection({ kind: "task", id: activeTask.id });
+                setPopup({ kind: "task-detail", taskId: activeTask.id });
+              }}
               onStatus={(status) => changeAgentStatus(selectedAgent, status)}
               onAction={setModal}
               onApprove={approveCurrent}
+              onOpenStatusPopup={() => setPopup({ kind: "agent-status", agentId: selectedAgent.id })}
               onOpenChat={() => { setPopup({ kind: "agent-chat", agentId: selectedAgent.id }); setPopupInput(""); }}
               onOpenTools={() => setPopup({ kind: "agent-tools", agentId: selectedAgent.id })}
               onOpenOutput={() => setPopup({ kind: "agent-output", agentId: selectedAgent.id })}
@@ -993,7 +1097,10 @@ function App() {
             <TaskPanel
               task={selectedTask}
               agent={office.agents.find((item) => item.id === selectedTask.ownerId)}
-              onSelectAgent={(id) => setSelection({ kind: "agent", id })}
+              onSelectAgent={(id) => {
+                setSelection({ kind: "agent", id });
+                setPopup({ kind: "agent-status", agentId: id });
+              }}
               onToggleStep={(idx) => {
                 const step = selectedTask.steps[idx];
                 officeDataSource.dispatch({
@@ -1011,9 +1118,13 @@ function App() {
           {selection?.kind === "meeting" && (
             <MeetingPanel
               office={office}
-              onSelectAgent={(id) => setSelection({ kind: "agent", id })}
+              onSelectAgent={(id) => {
+                setSelection({ kind: "agent", id });
+                setPopup({ kind: "agent-status", agentId: id });
+              }}
               onApprove={approveCurrent}
               onOpenBrainstorm={() => { setPopup({ kind: "meeting-brainstorm" }); setPopupInput(""); }}
+              onOpenDecisionsPopup={() => setPopup({ kind: "team-decisions" })}
             />
           )}
           {!selectedAgent && !selectedTask && selection?.kind !== "meeting" && (
@@ -1068,8 +1179,15 @@ function App() {
           input={popupInput}
           onInput={setPopupInput}
           onClose={() => setPopup(null)}
-          onSelectAgent={(id) => { setSelection({ kind: "agent", id }); setPopup(null); }}
-          onSelectTask={(id) => { setSelection({ kind: "task", id }); setPopup(null); }}
+          onNavigatePopup={(nextPopup) => setPopup(nextPopup)}
+          onSelectAgent={(id) => {
+            setSelection({ kind: "agent", id });
+            setPopup({ kind: "agent-status", agentId: id });
+          }}
+          onSelectTask={(id) => {
+            setSelection({ kind: "task", id });
+            setPopup({ kind: "task-detail", taskId: id });
+          }}
           onMoveAgent={(agent, status, zoneId) => { changeAgentStatus(agent, status, zoneId); setPopup(null); }}
           onRunAgent={(agent, prompt, context, taskId) => {
             setPopup(null);
@@ -1084,10 +1202,19 @@ function App() {
               fileName,
               event: createEvent(task?.ownerId ?? "planner", "file", `新增附件：${fileName}`, `已附加至任務「${task?.title ?? ""}」`),
             });
-            setPopup(null);
+            setPopup({ kind: "task-detail", taskId });
+          }}
+          onToggleTaskStep={(taskId, stepIdx) => {
+            const targetTask = office.tasks.find((t) => t.id === taskId);
+            const step = targetTask?.steps[stepIdx];
+            officeDataSource.dispatch({
+              type: "task.toggleStep",
+              taskId,
+              stepIndex: stepIdx,
+              event: createEvent(targetTask?.ownerId ?? "planner", "file", `更新步驟：${step?.label ?? ""}`, `任務「${targetTask?.title ?? ""}」步驟狀態已切換。`),
+            });
           }}
           onRunBrainstorm={async (topic) => {
-            setPopup(null);
             setSelection({ kind: "meeting" });
             setThinkingAgents((prev) => ({ ...prev, planner: "🧠 主持全員會議中…" }));
             const res = await askMeetingBrainstorm(topic);
@@ -1103,9 +1230,15 @@ function App() {
                 event: createEvent("planner", "handoff", `完成會議腦力激盪：${topic}`, res.meeting.summary),
               });
             }
+            setPopup({ kind: "team-decisions" });
           }}
           onOpenAssign={() => { setPopup(null); setModal("assign"); }}
+          onOpenActionModal={(m) => { setPopup(null); setModal(m); }}
           onApprove={approveCurrent}
+          mobile916={mobile916}
+          onToggleMobile916={() => { setMobile916((v) => !v); setPopup(null); }}
+          onRunOfficeRound={() => { setPopup(null); runOfficeRound(); }}
+          onOpenMonitor={() => { setShowMonitor(true); setMonitorMinimized(false); setPopup(null); }}
           uiPatch={uiPatch}
           uiForm={uiForm}
           onChangeUiForm={setUiForm}
@@ -1155,7 +1288,7 @@ function App() {
             if (target) {
               void saveAgentProfileApi({ ...target, avatar: newAvatar }, { avatar: newAvatar });
             }
-            setPopup(null);
+            setPopup({ kind: "agent-status", agentId });
           }}
           skillsMap={skillsMap}
           onSelectSkillAgent={(agentId) => {
@@ -1168,7 +1301,10 @@ function App() {
             const patch: Partial<Agent> = {
               ...(extracted.name ? { name: extracted.name } : {}),
               ...(extracted.role ? { role: extracted.role } : {}),
+              ...(extracted.department ? { department: extracted.department } : {}),
+              ...(extracted.positioning ? { positioning: extracted.positioning } : {}),
               ...(extracted.specialty ? { specialty: extracted.specialty } : {}),
+              ...(extracted.personality ? { personality: extracted.personality } : {}),
             };
             if (Object.keys(patch).length > 0) {
               officeDataSource.dispatch({
@@ -1205,7 +1341,7 @@ function App() {
               setSkillsMap((prev) => ({ ...prev, [ag.id]: saved }));
               addEvent(ag.id, "file", `已更新 ${patch.name ?? ag.name} 的 SKILL.md`, saved.paths[0] ?? "");
             }
-            setPopup(null);
+            setPopup({ kind: "agent-status", agentId: ag.id });
           }}
           browserApiKey={browserApiKey}
           onSaveBrowserApiKey={(key) => {
@@ -1420,6 +1556,7 @@ function AgentPanel({
   onStatus,
   onAction,
   onApprove,
+  onOpenStatusPopup,
   onOpenChat,
   onOpenTools,
   onOpenOutput,
@@ -1436,6 +1573,7 @@ function AgentPanel({
   onStatus: (status: AgentStatus) => void;
   onAction: (action: "assign" | "context" | "revision") => void;
   onApprove: () => void;
+  onOpenStatusPopup: () => void;
   onOpenChat: () => void;
   onOpenTools: () => void;
   onOpenOutput: () => void;
@@ -1459,9 +1597,13 @@ function AgentPanel({
           <i className={`person-online ${agent.status === "idle" ? "online-idle" : ""}`} />
         </button>
         <div className="person-meta">
-          <h2>{agent.name}</h2>
+          <h2>
+            <button type="button" className="person-name-popup-btn" onClick={onOpenStatusPopup} title="點擊彈出同事狀態通知視窗">
+              {agent.name} <span>↗</span>
+            </button>
+          </h2>
           <span>
-            {agent.role} <i /> <button type="button" className="change-avatar-link" onClick={onOpenEditProfile}>✎ 編輯個人資訊</button>
+            {agent.department ? `${agent.department} · ` : ""}{agent.role} <i /> <button type="button" className="change-avatar-link" onClick={onOpenEditProfile}>✎ 編輯個人資訊</button>
             <i /> <button type="button" className="change-avatar-link" onClick={onOpenSkill} title={skillInfo?.skillName ?? "SKILL.md"}>📘 Skill</button>
           </span>
         </div>
@@ -1469,21 +1611,34 @@ function AgentPanel({
       </div>
 
       <div className="character-dialogue-stage">
-        <div className={`attention-note adaptive-dialogue-card ${thinkingStage ? "note-thinking" : agent.status === "blocked" || agent.status === "error" ? "note-warning" : ""}`}>
+        <div
+          className={`attention-note adaptive-dialogue-card ${thinkingStage ? "note-thinking" : agent.status === "blocked" || agent.status === "error" ? "note-warning" : ""}`}
+          onClick={onOpenStatusPopup}
+          role="button"
+          tabIndex={0}
+          style={{ cursor: "pointer" }}
+          title="點擊彈出同事狀態通知視窗"
+        >
           <span className="note-icon">{thinkingStage ? "💭" : agent.status === "blocked" || agent.status === "error" ? "!" : "💬"}</span>
           <div className="adaptive-dialogue-body">
             <strong>{thinkingStage ? thinkingStage : `${agent.name}：「${agent.bubble}」`}</strong>
             {latestThought && !thinkingStage && (
               <p>🧠 {latestThought.thought}</p>
             )}
+            {agent.positioning && (
+              <p className="agent-specialty-tag">🧭 定位：{agent.positioning}</p>
+            )}
             {agent.specialty && (
               <p className="agent-specialty-tag">🎯 專長：{agent.specialty}</p>
+            )}
+            {agent.personality && (
+              <p className="agent-personality-tag">📖 個性背景：{agent.personality}</p>
             )}
           </div>
         </div>
       </div>
 
-      <PanelSection title="正在處理" action="詳情" onAction={onSelectTask}>
+      <PanelSection title="正在處理" action="詳情視窗" onAction={onSelectTask}>
         <button type="button" className="current-task-card" onClick={onSelectTask}>
           <div className="task-card-top"><span className="task-category">任務</span><span className="task-due">◷ {task.due}</span></div>
           <strong>{task.title}</strong>
@@ -1493,7 +1648,7 @@ function AgentPanel({
         </button>
       </PanelSection>
 
-      <PanelSection title="最近工具" action="紀錄" onAction={onOpenTools}>
+      <PanelSection title="最近工具" action="紀錄視窗" onAction={onOpenTools}>
         <div className="tool-list">
           {agent.tools.slice(0, 3).map((tool, idx) => (
             <button
@@ -1510,14 +1665,14 @@ function AgentPanel({
         </div>
       </PanelSection>
 
-      <PanelSection title="最新對話與產出" action="展開" onAction={onOpenOutput}>
+      <PanelSection title="最新對話與產出" action="展開視窗" onAction={onOpenOutput}>
         <button type="button" className="output-card output-card-clickable adaptive-output-card" onClick={onOpenOutput}>
           <span className="output-quote">“</span>
           <p>{agent.latestOutput}</p>
         </button>
       </PanelSection>
 
-      <PanelSection title="角色操作">
+      <PanelSection title="角色操作" action="狀態視窗" onAction={onOpenStatusPopup}>
         <div className="quick-actions">
           <button type="button" className="quick-chat" onClick={onOpenChat}><span>💬</span> 對話</button>
           <button type="button" onClick={onOpenEditProfile}><span>✎</span> 編輯個人資訊</button>
@@ -1616,15 +1771,30 @@ function MeetingPanel({
   onSelectAgent,
   onApprove,
   onOpenBrainstorm,
+  onOpenDecisionsPopup,
 }: {
   office: OfficeState;
   onSelectAgent: (id: string) => void;
   onApprove: () => void;
   onOpenBrainstorm: () => void;
+  onOpenDecisionsPopup: () => void;
 }) {
   return (
     <div className="panel-content meeting-panel-content">
-      <div className="meeting-heading-visual"><span>◷</span><div><h2>晨間快速同步</h2><p>今天 09:30 <i>·</i> {office.agents.length} 位參與</p></div><span className="meeting-live-chip"><i />進行中</span></div>
+      <div className="meeting-heading-visual">
+        <span>◷</span>
+        <div>
+          <h2>
+            <button type="button" className="person-name-popup-btn" onClick={onOpenDecisionsPopup}>
+              團隊決策與同步 <span>↗</span>
+            </button>
+          </h2>
+          <p>今天 09:30 <i>·</i> {office.agents.length} 位參與</p>
+        </div>
+        <button type="button" className="meeting-live-chip" onClick={onOpenDecisionsPopup} style={{ cursor: "pointer" }}>
+          <i />彈出視窗 ↗
+        </button>
+      </div>
       <div className="meeting-attendees">
         {office.agents.map((agent) => (
           <button type="button" key={agent.id} title={`${agent.name} · ${agent.role}`} onClick={() => onSelectAgent(agent.id)}>
@@ -1633,25 +1803,23 @@ function MeetingPanel({
         ))}
         <button type="button" className="meeting-more-btn" title="召開 AI 腦力激盪" onClick={onOpenBrainstorm}>+AI</button>
       </div>
-      <PanelSection title="討論摘要" action="AI 重新開會" onAction={onOpenBrainstorm}>
-        <div className="meeting-summary"><span>✳</span><p>{office.meeting.summary}</p></div>
+      <PanelSection title="討論摘要" action="彈出決策視窗" onAction={onOpenDecisionsPopup}>
+        <div className="meeting-summary" onClick={onOpenDecisionsPopup} role="button" tabIndex={0} style={{ cursor: "pointer" }}>
+          <span>✳</span><p>{office.meeting.summary}</p>
+        </div>
       </PanelSection>
-      <PanelSection title="主要分歧" action={`${office.meeting.disagreements.length} 個議題`}>
+      <PanelSection title="主要分歧" action={`${office.meeting.disagreements.length} 個議題`} onAction={onOpenDecisionsPopup}>
         <div className="discussion-list">
           {office.meeting.disagreements.map((item, index) => <div className="discussion-item" key={item}><span className="discussion-index">0{index + 1}</span><p>{item}</p></div>)}
         </div>
       </PanelSection>
-      <PanelSection title="已形成決策">
+      <PanelSection title="已形成決策" action="查看詳情" onAction={onOpenDecisionsPopup}>
         <div className="decision-list">{office.meeting.decisions.map((decision) => <div className="decision-item" key={decision}><span>✓</span><p>{decision}</p></div>)}</div>
       </PanelSection>
       <PanelSection title="待人工確認">
         {office.meeting.humanConfirmations.map((item) => <div className="human-confirmation" key={item}><span>!</span><p>{item}</p></div>)}
         <button type="button" className="confirm-button" onClick={onApprove}>確認並核准相關任務 <span>→</span></button>
         <button type="button" className="confirm-button brainstorm-btn" onClick={onOpenBrainstorm}>🧠 給定新議題讓 AI 團隊重新討論 <span>→</span></button>
-      </PanelSection>
-      <PanelSection title="會議活動">
-        <div className="meeting-event-line"><span className="event-line-dot" /><span>策劃提交 MVP 範圍草案</span><time>09:41</time></div>
-        <div className="meeting-event-line"><span className="event-line-dot event-line-blue" /><span>分析師分享研究洞察</span><time>09:40</time></div>
       </PanelSection>
     </div>
   );
@@ -1677,41 +1845,63 @@ function ActivityFeed({
   onOpenAll: () => void;
 }) {
   const filters: { id: "all" | ActivityEvent["type"]; label: string }[] = [
-    { id: "all", label: "全部" },
-    { id: "tool", label: "工具" },
-    { id: "file", label: "檔案" },
-    { id: "message", label: "訊息" },
-    { id: "error", label: "需要注意" },
-    { id: "handoff", label: "交接" },
+    { id: "all", label: "--all" },
+    { id: "tool", label: "--tool" },
+    { id: "file", label: "--file" },
+    { id: "message", label: "--msg" },
+    { id: "error", label: "--warn" },
+    { id: "handoff", label: "--sync" },
   ];
+  const typeShortCode: Record<ActivityEvent["type"], string> = {
+    tool: "TOOL",
+    file: "FILE",
+    message: "MSG ",
+    error: "WARN",
+    handoff: "SYNC",
+  };
   return (
-    <section className="activity-feed">
-      <div className="feed-heading">
-        <div className="feed-title"><span className="feed-pulse" /><h2>活動流</h2></div>
-        <div className="feed-filters" role="group" aria-label="活動類型篩選">
-          {filters.map((item) => <button type="button" key={item.id} className={filter === item.id ? "filter-active" : ""} onClick={() => onFilter(item.id)}>{item.label}{item.id === "error" && events.some((event) => event.type === "error") && <i />}</button>)}
+    <section className="activity-feed terminal-activity-feed" aria-label="背景終端機活動流">
+      <div className="feed-heading terminal-feed-bar">
+        <div className="feed-title terminal-prompt-title" onClick={onOpenAll} role="button" tabIndex={0}>
+          <span className="terminal-dots" aria-hidden="true"><i className="tdot-r" /><i className="tdot-y" /><i className="tdot-g" /></span>
+          <h2>&gt;_ office.activity.log</h2>
         </div>
-        <button type="button" className="feed-expand" onClick={onOpenAll}>紀錄 ({events.length}) <span>↗</span></button>
+        <div className="feed-filters terminal-filters" role="group" aria-label="終端機篩選參數">
+          {filters.map((item) => (
+            <button
+              type="button"
+              key={item.id}
+              className={filter === item.id ? "filter-active" : ""}
+              onClick={() => onFilter(item.id)}
+            >
+              {item.label}
+              {item.id === "error" && events.some((event) => event.type === "error") && <i />}
+            </button>
+          ))}
+        </div>
+        <button type="button" className="feed-expand terminal-expand-btn" onClick={onOpenAll}>
+          [展開完整日誌 ({events.length}) ↗]
+        </button>
       </div>
-      <div className="feed-events">
-        {events.length ? events.slice(0, 6).map((event) => {
+      <div className="feed-events terminal-log-lines">
+        {events.length ? events.slice(0, 5).map((event) => {
           const agent = agents.find((item) => item.id === event.agentId);
           return (
-            <article
-              className={`feed-event event-${event.type} feed-event-clickable`}
+            <button
+              type="button"
+              className={`feed-event terminal-log-row event-${event.type} feed-event-clickable`}
               key={event.id}
               onClick={() => onOpenEvent(event.id)}
-              role="button"
-              tabIndex={0}
+              title="點擊開啟通知視窗做詳細閱讀"
             >
-              <span className="event-icon">{eventIcons[event.type]}</span>
-              <time>{event.time}</time>
-              <span className="event-agent"><i>{agent ? <AvatarView avatar={agent.avatar} role={agent.role} /> : "🏢"}</i>{agent?.name ?? "辦公室"}</span>
-              <div className="event-copy"><strong>{event.summary}</strong><span>{event.detail}</span></div>
-              <span className={`event-tag tag-${event.type}`}>{event.type === "tool" ? "工具呼叫" : event.type === "file" ? "檔案修改" : event.type === "message" ? "訊息" : event.type === "error" ? "需關注" : "任務交接"}</span>
-            </article>
+              <time className="term-time">[{event.time}]</time>
+              <span className={`term-badge term-badge-${event.type}`}>{typeShortCode[event.type]}</span>
+              <span className="term-agent">@{agent?.name ?? "system"}</span>
+              <span className="term-cmd">$ {event.summary}</span>
+              <span className="term-hint">// 點擊詳情 ↗</span>
+            </button>
           );
-        }) : <div className="feed-empty">目前沒有此類型的活動。</div>}
+        }) : <div className="feed-empty terminal-empty">&gt;_ no matching activity records found.</div>}
       </div>
     </section>
   );
@@ -1812,14 +2002,21 @@ function GamePopupModal({
   input,
   onInput,
   onClose,
+  onNavigatePopup,
   onSelectAgent,
   onSelectTask,
+  onToggleTaskStep,
+  onOpenActionModal,
   onMoveAgent,
   onRunAgent,
   onAddAttachment,
   onRunBrainstorm,
   onOpenAssign,
   onApprove,
+  mobile916,
+  onToggleMobile916,
+  onRunOfficeRound,
+  onOpenMonitor,
   uiPatch,
   uiForm,
   onChangeUiForm,
@@ -1849,14 +2046,21 @@ function GamePopupModal({
   input: string;
   onInput: (val: string) => void;
   onClose: () => void;
+  onNavigatePopup: (next: GamePopup) => void;
   onSelectAgent: (id: string) => void;
   onSelectTask: (id: string) => void;
+  onToggleTaskStep: (taskId: string, stepIndex: number) => void;
+  onOpenActionModal: (kind: "assign" | "context" | "revision") => void;
   onMoveAgent: (agent: Agent, status: AgentStatus, zoneId?: string) => void;
   onRunAgent: (agent: Agent, prompt: string, context?: string, taskId?: string) => void;
   onAddAttachment: (taskId: string, fileName: string) => void;
   onRunBrainstorm: (topic: string) => void;
   onOpenAssign: () => void;
   onApprove: () => void;
+  mobile916: boolean;
+  onToggleMobile916: () => void;
+  onRunOfficeRound: () => void;
+  onOpenMonitor: () => void;
   uiPatch: UiEvolutionPatch | null;
   uiForm: {
     brandTitle: string;
@@ -1884,45 +2088,57 @@ function GamePopupModal({
   onResetUi: () => void;
   newAgentForm: {
     name: string;
+    department: string;
     role: string;
+    positioning: string;
     avatar: string;
     zoneId: string;
     status: AgentStatus;
     bubble: string;
     specialty: string;
+    personality: string;
     initialTask: string;
   };
   onChangeNewAgentForm: (next: {
     name: string;
+    department: string;
     role: string;
+    positioning: string;
     avatar: string;
     zoneId: string;
     status: AgentStatus;
     bubble: string;
     specialty: string;
+    personality: string;
     initialTask: string;
   }) => void;
   onSubmitCreateAgent: () => void;
   editAgentForm: {
     id: string;
     name: string;
+    department: string;
     role: string;
+    positioning: string;
     avatar: string;
     zoneId: string;
     status: AgentStatus;
     bubble: string;
     specialty: string;
+    personality: string;
     latestOutput: string;
   };
   onChangeEditAgentForm: (next: {
     id: string;
     name: string;
+    department: string;
     role: string;
+    positioning: string;
     avatar: string;
     zoneId: string;
     status: AgentStatus;
     bubble: string;
     specialty: string;
+    personality: string;
     latestOutput: string;
   }) => void;
   onOpenEditAgent: (agent: Agent) => void;
@@ -1937,6 +2153,548 @@ function GamePopupModal({
 }) {
   const renderBody = () => {
     switch (popup.kind) {
+      case "toolbar-menu": {
+        const currentAgent = selectedAgent ?? office.agents[0];
+        return (
+          <>
+            <h2>☰ 辦公室控制工具列（跳出式選單）</h2>
+            <div className="toolbar-menu-grid">
+              <button
+                type="button"
+                className="toolbar-menu-card"
+                onClick={() => onNavigatePopup({ kind: "agent-status", agentId: currentAgent.id })}
+              >
+                <span className="toolbar-menu-icon">👤</span>
+                <strong>同事狀態視窗</strong>
+                <small>檢視 {currentAgent.name} 的個人檔案與即時產出</small>
+              </button>
+
+              <button
+                type="button"
+                className="toolbar-menu-card"
+                onClick={() => onNavigatePopup({ kind: "team-decisions" })}
+              >
+                <span className="toolbar-menu-icon">📋</span>
+                <strong>團隊決策視窗</strong>
+                <small>檢視跨部門共識、分歧與待核准項目</small>
+              </button>
+
+              <button
+                type="button"
+                className="toolbar-menu-card"
+                onClick={() => onNavigatePopup({ kind: "hr-roster" })}
+              >
+                <span className="toolbar-menu-icon">🪪</span>
+                <strong>HR 人事檔案館</strong>
+                <small>全體同事 6 大個人欄位與 HR Docs 管理</small>
+              </button>
+
+              <button
+                type="button"
+                className="toolbar-menu-card"
+                onClick={() => onOpenEditAgent(currentAgent)}
+              >
+                <span className="toolbar-menu-icon">✎</span>
+                <strong>角色個人設定</strong>
+                <small>修改名稱、職能、定位、頭像、專長與個性</small>
+              </button>
+
+              <button
+                type="button"
+                className="toolbar-menu-card"
+                onClick={() => onNavigatePopup({ kind: "agent-create" })}
+              >
+                <span className="toolbar-menu-icon">🧑🏻‍🎨</span>
+                <strong>招募新 AI 同事</strong>
+                <small>新增自訂角色並自動建立專屬 SKILL.md</small>
+              </button>
+
+              <button
+                type="button"
+                className="toolbar-menu-card"
+                onClick={() => onSelectSkillAgent(currentAgent.id)}
+              >
+                <span className="toolbar-menu-icon">📘</span>
+                <strong>Skills 技能包 ({Object.keys(skillsMap).length || office.agents.length})</strong>
+                <small>檢視、編輯與下載全體同事 SKILL.md</small>
+              </button>
+
+              <button
+                type="button"
+                className="toolbar-menu-card"
+                onClick={() => onNavigatePopup({ kind: "director" })}
+              >
+                <span className="toolbar-menu-icon">🎮</span>
+                <strong>總監指令台</strong>
+                <small>全體同事快速調度與廣播指令</small>
+              </button>
+
+              <button
+                type="button"
+                className="toolbar-menu-card"
+                onClick={() => onNavigatePopup({ kind: "ui-studio" })}
+              >
+                <span className="toolbar-menu-icon">🎨</span>
+                <strong>改介面 Studio</strong>
+                <small>調整配色、字級、圓角與版面寬度</small>
+              </button>
+
+              <button
+                type="button"
+                className="toolbar-menu-card"
+                onClick={() => {
+                  onInput(browserApiKey);
+                  onNavigatePopup({ kind: "api-key" });
+                }}
+              >
+                <span className="toolbar-menu-icon">🔑</span>
+                <strong>{browserApiKey ? "金鑰已設定" : "設定 Gemini 金鑰"}</strong>
+                <small>管理瀏覽器端 Gemini API Key</small>
+              </button>
+
+              <button
+                type="button"
+                className="toolbar-menu-card"
+                onClick={() => {
+                  onToggleMobile916();
+                  onClose();
+                }}
+              >
+                <span className="toolbar-menu-icon">{mobile916 ? "🖥️" : "📱"}</span>
+                <strong>切換為{mobile916 ? "桌機版面" : "手機 9:16"}</strong>
+                <small>目前：{mobile916 ? "9:16 直立手機視窗" : "寬螢幕桌機視窗"}</small>
+              </button>
+
+              <button
+                type="button"
+                className="toolbar-menu-card"
+                onClick={() => {
+                  onOpenMonitor();
+                  onClose();
+                }}
+              >
+                <span className="toolbar-menu-icon">🧠</span>
+                <strong>AI 思考監控窗 ({thoughts.length})</strong>
+                <small>開啟即時推論階段與耗時 HUD</small>
+              </button>
+
+              <button
+                type="button"
+                className="toolbar-menu-card"
+                onClick={() => {
+                  onRunOfficeRound();
+                  onClose();
+                }}
+              >
+                <span className="toolbar-menu-icon">⚡</span>
+                <strong>推進辦公室回合</strong>
+                <small>讓所有工作中同事同步向前推進一步</small>
+              </button>
+            </div>
+            <div className="modal-actions">
+              <button type="button" className="cancel-button" onClick={onClose}>關閉選單</button>
+              <button type="button" className="primary-button" onClick={() => { onClose(); onOpenAssign(); }}>
+                ＋ 立即派發新任務 <span>→</span>
+              </button>
+            </div>
+          </>
+        );
+      }
+
+      case "agent-status": {
+        const agent = office.agents.find((a) => a.id === popup.agentId) ?? selectedAgent ?? office.agents[0];
+        const agentTask = office.tasks.find((t) => t.id === agent.taskId) ?? selectedTask ?? office.tasks[0];
+        const lastThought = thoughts.find((t) => t.agentId === agent.id);
+        return (
+          <>
+            <div className="chat-modal-header">
+              <h2 className="row-with-avatar">
+                <span className="inline-avatar"><AvatarView avatar={agent.avatar} role={agent.role} /></span>
+                <span>👤 同事狀態 — {agent.name}（{agent.role}）</span>
+                <span className={`status-pill ${statusClasses[agent.status]}`}>
+                  <i />
+                  {thinkingAgents[agent.id] ?? statusNames[agent.status]}
+                </span>
+              </h2>
+              <div className="popup-row-btns">
+                <button type="button" className="secondary-top-button" onClick={() => onNavigatePopup({ kind: "hr-roster" })}>
+                  🪪 HR 檔案館
+                </button>
+                <button type="button" className="secondary-top-button" onClick={() => onOpenEditAgent(agent)}>
+                  ✎ 編輯個人資訊
+                </button>
+              </div>
+            </div>
+
+            <div className="zone-summon-row" style={{ marginBottom: 10 }}>
+              {office.agents.map((ag) => (
+                <button
+                  type="button"
+                  key={ag.id}
+                  className={`summon-chip row-with-avatar ${ag.id === agent.id ? "avatar-cell-active" : ""}`}
+                  onClick={() => onNavigatePopup({ kind: "agent-status", agentId: ag.id })}
+                >
+                  <span className="inline-avatar"><AvatarView avatar={ag.avatar} role={ag.role} /></span>
+                  <span>{ag.name}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="rpg-dialogue-stage">
+              <div className="rpg-speaker-portrait">
+                <button
+                  type="button"
+                  className="rpg-speaker-avatar"
+                  title="更換頭像"
+                  onClick={() => {
+                    onInput(agent.avatar);
+                    onNavigatePopup({ kind: "avatar-picker", agentId: agent.id });
+                  }}
+                >
+                  <AvatarView avatar={agent.avatar} role={agent.role} />
+                </button>
+                <strong>{agent.name}</strong>
+                <span>{agent.department ?? agent.role}</span>
+              </div>
+              <div className="rpg-dialogue-bubble-adaptive">
+                <div className="rpg-bubble-pill">💬 {agent.bubble}</div>
+                <div className="rpg-thought-line">💭 {lastThought?.thought ?? "待命準備執行總監交辦事項"}</div>
+                <div className="rpg-speech-line">{agent.latestOutput}</div>
+              </div>
+            </div>
+
+            <div className="hr-profile-grid">
+              <div className="hr-field-box">
+                <span>職能部門</span>
+                <strong>{agent.department ?? "核心專案組"}</strong>
+              </div>
+              <div className="hr-field-box">
+                <span>專業定位</span>
+                <strong>{agent.positioning ?? agent.role}</strong>
+              </div>
+              <div className="hr-field-box hr-field-wide">
+                <span>核心專長</span>
+                <strong>{agent.specialty ?? "跨職能協作與專業任務交付"}</strong>
+              </div>
+              <div className="hr-field-box hr-field-wide">
+                <span>個性與背景</span>
+                <p>{agent.personality ?? "認真負責的 AI 辦公室成員，隨時支援團隊目標。"}</p>
+              </div>
+            </div>
+
+            {agentTask && (
+              <div className="popup-task-box">
+                <div className="popup-task-head">
+                  <strong>⌁ 負責任務：{agentTask.title}</strong>
+                  <span className="progress-num">{agentTask.progress}% · {agentTask.status}</span>
+                </div>
+                <ProgressBar value={agentTask.progress} />
+                <div className="step-list" style={{ marginTop: 8 }}>
+                  {agentTask.steps.map((step, idx) => (
+                    <button
+                      type="button"
+                      key={step.label}
+                      className={`step-row step-row-btn ${step.done ? "step-done" : ""}`}
+                      onClick={() => onToggleTaskStep(agentTask.id, idx)}
+                    >
+                      <span className="step-check">{step.done ? "✓" : ""}</span>
+                      <span>{step.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="modal-actions">
+              <button type="button" className="cancel-button" onClick={onClose}>關閉</button>
+              <button type="button" className="secondary-top-button" onClick={() => onSelectSkillAgent(agent.id)}>
+                📘 SKILL.md
+              </button>
+              <button
+                type="button"
+                className="secondary-top-button"
+                onClick={() => {
+                  onInput("");
+                  onNavigatePopup({ kind: "agent-chat", agentId: agent.id });
+                }}
+              >
+                💬 對話視窗
+              </button>
+              <button
+                type="button"
+                className="primary-button"
+                onClick={() => onRunAgent(agent, `請針對你目前的任務「${agentTask?.title ?? "當前工作"}」進行下一步推論並給出具體結論。`, agentTask?.goal, agentTask?.id)}
+              >
+                🧠 讓 {agent.name} 立即思考 <span>→</span>
+              </button>
+            </div>
+          </>
+        );
+      }
+
+      case "team-decisions": {
+        const attendees = office.agents;
+        return (
+          <>
+            <div className="chat-modal-header">
+              <h2>📋 團隊決策與跨部門共識視窗</h2>
+              <span className="status-icon-badge"><i className="live-dot" /> {attendees.length} 位與會</span>
+            </div>
+
+            <div className="attendee-row" style={{ marginBottom: 10 }}>
+              {attendees.map((agent) => (
+                <button
+                  type="button"
+                  key={agent.id}
+                  className="attendee-chip attendee-chip-btn"
+                  onClick={() => onNavigatePopup({ kind: "agent-status", agentId: agent.id })}
+                >
+                  <span className="inline-avatar"><AvatarView avatar={agent.avatar} role={agent.role} /></span>
+                  <span>{agent.name} · {agent.role}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="decision-popup-grid">
+              <div className="decision-card">
+                <div className="decision-card-head">
+                  <strong>💬 討論摘要</strong>
+                  <button
+                    type="button"
+                    className="mini-link-btn"
+                    onClick={() => {
+                      onInput("");
+                      onNavigatePopup({ kind: "meeting-brainstorm" });
+                    }}
+                  >
+                    重新召開 ↗
+                  </button>
+                </div>
+                <p>{office.meeting.summary}</p>
+              </div>
+
+              <div className="decision-card decision-card-warn">
+                <div className="decision-card-head">
+                  <strong>⚡ 主要分歧</strong>
+                </div>
+                {office.meeting.disagreements.map((item) => (
+                  <p key={item}>• {item}</p>
+                ))}
+              </div>
+
+              <div className="decision-card decision-card-ok">
+                <div className="decision-card-head">
+                  <strong>✓ 已形成決策</strong>
+                </div>
+                {office.meeting.decisions.map((item) => (
+                  <p key={item}>✓ {item}</p>
+                ))}
+              </div>
+
+              <div className="decision-card decision-card-pending">
+                <div className="decision-card-head">
+                  <strong>⏳ 待總監確認</strong>
+                </div>
+                {office.meeting.humanConfirmations.map((item) => (
+                  <p key={item}>! {item}</p>
+                ))}
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button type="button" className="cancel-button" onClick={onClose}>關閉</button>
+              <button
+                type="button"
+                className="secondary-top-button"
+                onClick={() => {
+                  onInput("");
+                  onNavigatePopup({ kind: "meeting-brainstorm" });
+                }}
+              >
+                🧠 召開新腦力激盪
+              </button>
+              <button
+                type="button"
+                className="primary-button"
+                onClick={() => {
+                  onApprove();
+                  onClose();
+                }}
+              >
+                ✓ 核准決策並繼續推進 <span>→</span>
+              </button>
+            </div>
+          </>
+        );
+      }
+
+      case "task-detail": {
+        const task = office.tasks.find((t) => t.id === popup.taskId) ?? selectedTask ?? office.tasks[0];
+        const owner = office.agents.find((a) => a.id === task.ownerId) ?? office.agents[0];
+        return (
+          <>
+            <div className="chat-modal-header">
+              <h2>⌁ 任務詳情 — {task.title}</h2>
+              <span className="status-icon-badge">{task.progress}% · {task.status}</span>
+            </div>
+
+            <div className="popup-list-row" style={{ marginBottom: 10 }}>
+              <span className="row-with-avatar">
+                <span className="inline-avatar"><AvatarView avatar={owner.avatar} role={owner.role} /></span>
+                <strong>負責人：{owner.name}（{owner.role}）</strong>
+              </span>
+              <div className="popup-row-btns">
+                <button type="button" onClick={() => onNavigatePopup({ kind: "agent-status", agentId: owner.id })}>
+                  👤 同事狀態
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onNavigatePopup({ kind: "attachment", taskId: task.id })}
+                >
+                  ＋ 新增附件
+                </button>
+              </div>
+            </div>
+
+            <div className="rpg-thought-box" style={{ marginBottom: 10 }}>
+              <strong>🎯 任務目標：</strong>
+              <p>{task.goal}</p>
+            </div>
+
+            <ProgressBar value={task.progress} />
+
+            <div className="step-list" style={{ marginTop: 10 }}>
+              {task.steps.map((step, idx) => (
+                <button
+                  type="button"
+                  key={step.label}
+                  className={`step-row step-row-btn ${step.done ? "step-done" : ""}`}
+                  onClick={() => onToggleTaskStep(task.id, idx)}
+                >
+                  <span className="step-check">{step.done ? "✓" : ""}</span>
+                  <span>{step.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {task.attachments.length > 0 && (
+              <div className="attachment-list" style={{ marginTop: 10 }}>
+                {task.attachments.map((file) => (
+                  <button
+                    type="button"
+                    key={file}
+                    className="attachment-chip"
+                    onClick={() => onNavigatePopup({ kind: "attachment", taskId: task.id, file })}
+                  >
+                    ▤ {file}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="modal-actions">
+              <button type="button" className="cancel-button" onClick={onClose}>關閉</button>
+              <button
+                type="button"
+                className="secondary-top-button"
+                onClick={() => {
+                  onClose();
+                  onOpenActionModal("context");
+                }}
+              >
+                ▤ 補充資料
+              </button>
+              <button
+                type="button"
+                className="secondary-top-button"
+                onClick={() => {
+                  onClose();
+                  onOpenActionModal("revision");
+                }}
+              >
+                ↻ 要求修改
+              </button>
+              <button
+                type="button"
+                className="primary-button"
+                onClick={() => onRunAgent(owner, `請針對任務「${task.title}」執行下一步並更新具體成果。`, task.goal, task.id)}
+              >
+                🧠 讓 {owner.name} 執行任務 <span>→</span>
+              </button>
+            </div>
+          </>
+        );
+      }
+
+      case "hr-roster": {
+        return (
+          <>
+            <div className="chat-modal-header">
+              <h2>🪪 HR 人事檔案館 & Docs（office-hr-manager）</h2>
+              <div className="popup-row-btns">
+                <a
+                  className="secondary-top-button"
+                  href="./docs/HR_COLLEAGUE_ROSTER.md"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  📄 開啟 HR Docs
+                </a>
+                <button
+                  type="button"
+                  className="secondary-top-button"
+                  onClick={() => onNavigatePopup({ kind: "agent-create" })}
+                >
+                  ＋ 招募新同事
+                </button>
+              </div>
+            </div>
+
+            <div className="hr-roster-list">
+              {office.agents.map((ag) => (
+                <div key={ag.id} className="hr-profile-card">
+                  <div className="hr-profile-card-top">
+                    <div className="row-with-avatar">
+                      <span className="rpg-avatar"><AvatarView avatar={ag.avatar} role={ag.role} /></span>
+                      <div>
+                        <strong>{ag.name} <small>· {ag.role}</small></strong>
+                        <div className="hr-dept-pill">{ag.department ?? "核心專案組"} ｜ {ag.positioning ?? ag.role}</div>
+                      </div>
+                    </div>
+                    <div className="popup-row-btns">
+                      <button type="button" onClick={() => onNavigatePopup({ kind: "agent-status", agentId: ag.id })}>
+                        👤 狀態
+                      </button>
+                      <button type="button" onClick={() => onOpenEditAgent(ag)}>
+                        ✎ 編輯檔案
+                      </button>
+                      <button type="button" onClick={() => onSelectSkillAgent(ag.id)}>
+                        📘 Skill
+                      </button>
+                    </div>
+                  </div>
+                  <div className="hr-profile-card-body">
+                    <div><strong>核心專長：</strong>{ag.specialty ?? "跨部門專案協作"}</div>
+                    <div><strong>個性與背景：</strong>{ag.personality ?? "認真負責的 AI 辦公室成員"}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="modal-actions">
+              <button type="button" className="cancel-button" onClick={onClose}>關閉</button>
+              <button
+                type="button"
+                className="primary-button"
+                onClick={() => onOpenEditAgent(selectedAgent ?? office.agents[0])}
+              >
+                ✎ 編輯目前選取同事 <span>→</span>
+              </button>
+            </div>
+          </>
+        );
+      }
+
       case "director":
         return (
           <>
@@ -2194,7 +2952,17 @@ function GamePopupModal({
                 />
               </label>
               <label className="modal-label">
-                2. 職稱與定位
+                2. 職能部門
+                <input
+                  type="text"
+                  className="ui-field-input"
+                  value={editAgentForm.department}
+                  onChange={(e) => onChangeEditAgentForm({ ...editAgentForm, department: e.target.value })}
+                />
+              </label>
+
+              <label className="modal-label">
+                3. 職稱角色
                 <input
                   type="text"
                   className="ui-field-input"
@@ -2202,9 +2970,18 @@ function GamePopupModal({
                   onChange={(e) => onChangeEditAgentForm({ ...editAgentForm, role: e.target.value })}
                 />
               </label>
+              <label className="modal-label">
+                4. 專業定位
+                <input
+                  type="text"
+                  className="ui-field-input"
+                  value={editAgentForm.positioning}
+                  onChange={(e) => onChangeEditAgentForm({ ...editAgentForm, positioning: e.target.value })}
+                />
+              </label>
 
               <label className="modal-label">
-                3. 角色頭像 (圖示 / 網址 / 上傳圖片)
+                5. 角色頭像 (圖示 / 網址 / 上傳圖片)
                 <div className="avatar-input-row">
                   <span className="avatar-preview-box">
                     <AvatarView avatar={editAgentForm.avatar || target.avatar} role={editAgentForm.role} />
@@ -2238,7 +3015,7 @@ function GamePopupModal({
                 </div>
               </label>
               <label className="modal-label">
-                4. 所在辦公室房間
+                6. 所在辦公室房間
                 <select
                   className="ui-field-input"
                   value={editAgentForm.zoneId}
@@ -2251,7 +3028,7 @@ function GamePopupModal({
               </label>
 
               <label className="modal-label">
-                5. 目前工作狀態
+                7. 目前工作狀態
                 <select
                   className="ui-field-input"
                   value={editAgentForm.status}
@@ -2263,7 +3040,7 @@ function GamePopupModal({
                 </select>
               </label>
               <label className="modal-label">
-                6. 頭頂對話氣泡（對話框會依字數自動伸縮）
+                8. 頭頂對話氣泡（對話框會依字數自動伸縮）
                 <input
                   type="text"
                   className="ui-field-input"
@@ -2287,7 +3064,7 @@ function GamePopupModal({
             </div>
 
             <label className="modal-label" htmlFor="edit-agent-specialty" style={{ marginTop: 8 }}>
-              7. 角色核心專長（同步寫入 SKILL.md）
+              9. 角色核心專長（同步寫入 SKILL.md）
             </label>
             <input
               id="edit-agent-specialty"
@@ -2298,14 +3075,24 @@ function GamePopupModal({
               placeholder="輸入此角色的核心專長與工作規範…"
             />
 
+            <label className="modal-label" htmlFor="edit-agent-personality" style={{ marginTop: 8 }}>
+              10. 個性與背景設定（同步寫入 SKILL.md）
+            </label>
+            <textarea
+              id="edit-agent-personality"
+              value={editAgentForm.personality}
+              onChange={(e) => onChangeEditAgentForm({ ...editAgentForm, personality: e.target.value })}
+              rows={2}
+            />
+
             <label className="modal-label" htmlFor="edit-agent-output" style={{ marginTop: 8 }}>
-              8. 目前對話／最新產出內容
+              11. 目前對話／最新產出內容
             </label>
             <textarea
               id="edit-agent-output"
               value={editAgentForm.latestOutput}
               onChange={(e) => onChangeEditAgentForm({ ...editAgentForm, latestOutput: e.target.value })}
-              rows={3}
+              rows={2}
             />
 
             <div className="modal-actions">
@@ -2706,7 +3493,18 @@ function GamePopupModal({
                 />
               </label>
               <label className="modal-label">
-                2. 職稱與專業定位
+                2. 職能部門
+                <input
+                  type="text"
+                  className="ui-field-input"
+                  placeholder="例如：量化研究組 / 法務合規室"
+                  value={newAgentForm.department}
+                  onChange={(e) => onChangeNewAgentForm({ ...newAgentForm, department: e.target.value })}
+                />
+              </label>
+
+              <label className="modal-label">
+                3. 職稱角色
                 <input
                   type="text"
                   className="ui-field-input"
@@ -2715,9 +3513,19 @@ function GamePopupModal({
                   onChange={(e) => onChangeNewAgentForm({ ...newAgentForm, role: e.target.value })}
                 />
               </label>
+              <label className="modal-label">
+                4. 專業定位
+                <input
+                  type="text"
+                  className="ui-field-input"
+                  placeholder="例如：策略回測與風險歸因專家"
+                  value={newAgentForm.positioning}
+                  onChange={(e) => onChangeNewAgentForm({ ...newAgentForm, positioning: e.target.value })}
+                />
+              </label>
 
               <label className="modal-label">
-                3. 角色頭像
+                5. 角色頭像
                 <div className="avatar-input-row">
                   <span className="avatar-preview-box">
                     <AvatarView avatar={newAgentForm.avatar || "🕵🏻‍♂️"} />
@@ -2751,7 +3559,7 @@ function GamePopupModal({
                 </div>
               </label>
               <label className="modal-label">
-                4. 進駐辦公室房間
+                6. 進駐辦公室房間
                 <select
                   className="ui-field-input"
                   value={newAgentForm.zoneId}
@@ -2764,7 +3572,7 @@ function GamePopupModal({
               </label>
 
               <label className="modal-label">
-                5. 初始工作狀態
+                7. 初始工作狀態
                 <select
                   className="ui-field-input"
                   value={newAgentForm.status}
@@ -2776,7 +3584,7 @@ function GamePopupModal({
                 </select>
               </label>
               <label className="modal-label">
-                6. 頭頂對話氣泡
+                8. 頭頂對話氣泡
                 <input
                   type="text"
                   className="ui-field-input"
@@ -2800,7 +3608,7 @@ function GamePopupModal({
             </div>
 
             <label className="modal-label" htmlFor="new-agent-specialty" style={{ marginTop: 8 }}>
-              7. 核心專長與規範（自動生成 SKILL.md）
+              9. 核心專長與規範（自動生成 SKILL.md）
             </label>
             <input
               id="new-agent-specialty"
@@ -2811,8 +3619,20 @@ function GamePopupModal({
               placeholder="例如：負責台美股三大法人籌碼比對、異常買超篩選與風險控管建議"
             />
 
+            <label className="modal-label" htmlFor="new-agent-personality" style={{ marginTop: 8 }}>
+              10. 個性與背景設定（自動寫入 HR 檔案與 SKILL.md）
+            </label>
+            <input
+              id="new-agent-personality"
+              type="text"
+              className="ui-field-input"
+              value={newAgentForm.personality}
+              onChange={(e) => onChangeNewAgentForm({ ...newAgentForm, personality: e.target.value })}
+              placeholder="例如：講話精準俐落、重數據證據，習慣在結論附上風險提示"
+            />
+
             <label className="modal-label" htmlFor="new-agent-task" style={{ marginTop: 8 }}>
-              8. 首項交辦任務（選填）
+              11. 首項交辦任務（選填）
             </label>
             <textarea
               id="new-agent-task"

@@ -50,8 +50,11 @@ interface BuiltinColleagueMeta {
   skillName: string;
   name: string;
   role: string;
+  department: string;
+  positioning: string;
   avatar: string;
   specialty: string;
+  personality: string;
   triggers: string[];
   sop: string[];
 }
@@ -62,8 +65,11 @@ const BUILTIN_COLLEAGUES_META: BuiltinColleagueMeta[] = [
     skillName: "office-planner-xiaoju",
     name: "小橘",
     role: "策劃",
+    department: "產品策劃與專案管理部",
+    positioning: "首席產品策劃 ／ 敏捷衝刺與路線圖統籌",
     avatar: "🧑🏻‍💼",
-    specialty: "產品路線圖規劃、MVP 範圍定義、跨角色任務拆解與優先級排序",
+    specialty: "產品路線圖規劃、MVP 範圍定義、跨角色任務拆解、P0/P1/P2 優先級排序與跨部門交接",
+    personality: "前新創團隊王牌 PM，隨身帶著貼滿彩色索引貼的橘色筆記本。個性熱情果斷、思考結構極度清晰，口頭禪是「先對齊目標！」，擅長在混亂需求中抓出 20% 核心價值，是總監最信賴的開局先鋒。",
     triggers: ["/小橘", "策劃", "MVP", "排程", "拆解任務"],
     sop: [
       "釐清總監目標與核心使用情境，將大目標拆成可驗證的 3 個子步驟。",
@@ -76,8 +82,11 @@ const BUILTIN_COLLEAGUES_META: BuiltinColleagueMeta[] = [
     skillName: "office-researcher-ayan",
     name: "阿研",
     role: "研究",
+    department: "使用者體驗與前沿設計研究室",
+    positioning: "首席 UX 研究員 ／ 遊戲化介面與互動設計師",
     avatar: "🧑🏻‍🔬",
-    specialty: "UX 使用者研究、競品分析、網站內部介面參數改造與視覺體驗優化",
+    specialty: "UX 使用者訪談研究、競品交互拆解、RPG 遊戲化視覺設計、網站內部介面參數與 CSS 變數即時改造",
+    personality: "出身數位互動媒體實驗室的跨域研究員，對復古手繪紙感與像素風 RPG 介面有著極高審美堅持。觀察力敏銳，總能一眼看出使用者視線卡關處，並親手把介面調校到賞心悅目。",
     triggers: ["/阿研", "研究", "改介面", "UX", "洞察"],
     sop: [
       "從使用者體驗與 RPG 遊戲化互動角度分析目前畫面與操作痛點。",
@@ -90,8 +99,11 @@ const BUILTIN_COLLEAGUES_META: BuiltinColleagueMeta[] = [
     skillName: "office-engineer-ama",
     name: "阿碼",
     role: "程式工程師",
+    department: "全端系統工程與架構部",
+    positioning: "資深全端工程師 ／ 系統穩定度與互動實作擔當",
     avatar: "👩🏻‍💻",
-    specialty: "React/TypeScript 前端架構、Flask API 串接、CSS 外框與排版除錯、自動化測試",
+    specialty: "React/TypeScript 前端架構、Flask API 與純前端無伺服器雙模式串接、CSS 外框與 9:16 手機排版除錯、GitHub Pages 自動化部署",
+    personality: "理性冷靜的鍵盤快手，工作桌永遠架著雙螢幕與一杯特濃黑咖啡。對型別安全與 DOM 容器邊界有著極高潔癖，看到破版或 bug 就會立刻進入高專注除錯模式，口頭禪是「給我五分鐘修好它」。",
     triggers: ["/阿碼", "工程師", "修 bug", "程式碼", "排版"],
     sop: [
       "精準定位 DOM/CSS 或 API 錯誤根因（例如容器爆框、型別錯誤、狀態同步問題）。",
@@ -104,8 +116,11 @@ const BUILTIN_COLLEAGUES_META: BuiltinColleagueMeta[] = [
     skillName: "office-analyst-shuju",
     name: "數據",
     role: "資料分析師",
+    department: "商業智慧與量化科學部",
+    positioning: "首席資料分析師 ／ 量化指標與異常診斷專家",
     avatar: "👨🏻‍💼",
-    specialty: "量化指標分析、問卷與事件流統計、轉換率與異常診斷、圖表洞察解讀",
+    specialty: "量化指標建模、問卷樣本與事件流統計、轉換率漏斗分析、代理人卡關異常診斷、圖表洞察解讀",
+    personality: "統計學與行為經濟學雙碩士，說話溫和有禮但邏輯極度嚴謹，不接受模糊臆測，只相信有效樣本數與信賴區間。常駐會議室白板前比對事件流，是替團隊決策把關的理性大腦。",
     triggers: ["/數據", "分析師", "統計", "指標", "數據"],
     sop: [
       "盤點手頭樣本數、事件紀錄與核心指標分布，找出異常值或關鍵瓶頸百分比。",
@@ -118,8 +133,11 @@ const BUILTIN_COLLEAGUES_META: BuiltinColleagueMeta[] = [
     skillName: "office-supervisor-xiaochu",
     name: "小處",
     role: "處女座監督",
+    department: "品質保證與風險合規監督室",
+    positioning: "處女座首席監督 ／ 交付驗收與風險合規守門員",
     avatar: "🧑🏻‍⚖️",
-    specialty: "品質把關、邊界條件審查、風險與合規檢查、交付物驗收清單",
+    specialty: "交付物品質驗收、邊界條件與極端情境審查、品牌素材授權與合規檢查、上線前 Checklist 風險攔截",
+    personality: "典型處女座完美主義監督官，隨身帶著放大鏡與紅筆駐守在任務牆前。外冷內熱、責任感極強；雖然常因攔截缺漏附件讓同事緊張，但只要經過小處蓋章放行的專案絕對穩如泰山。",
     triggers: ["/小處", "監督", "審核", "檢查", "風險"],
     sop: [
       "逐項檢查任務步驟、附件完整度與潛在破綻（授權、極端輸入、RWD 破版）。",
@@ -132,8 +150,11 @@ const BUILTIN_COLLEAGUES_META: BuiltinColleagueMeta[] = [
     skillName: "office-mascot-mochi",
     name: "麻糬",
     role: "吉祥物",
+    department: "企業文化與心靈療癒部",
+    positioning: "首席辦公室吉祥物 ／ 團隊士氣與靈感破冰大使",
     avatar: "🐩",
-    specialty: "團隊士氣激勵、品牌語氣靈感、創意破冰點子與療癒支援",
+    specialty: "團隊士氣激勵、品牌溫暖語氣調校、創意破冰點子發想、高壓衝刺期的情緒價值與療癒支援",
+    personality: "一隻蓬鬆潔白、聰明機靈的貴賓犬吉祥物，最喜歡窩在休息區沙發旁待命。當辦公室氣氛緊繃或大家燒腦過度時，總會搖著尾巴叼來讓人眼睛一亮的趣味彩蛋點子，瞬間補滿全員能量。",
     triggers: ["/麻糬", "吉祥物", "靈感", "打氣"],
     sop: [
       "用活潑溫暖的語氣為總監與團隊注入活力，緩解高壓開發節奏。",
@@ -153,8 +174,11 @@ export function renderColleagueSkillMarkdown(colleague: {
   id: string;
   name: string;
   role: string;
+  department?: string;
+  positioning?: string;
   avatar?: string;
   specialty?: string;
+  personality?: string;
   triggers?: string[];
   sop?: string[];
   customSkillMarkdown?: string;
@@ -166,12 +190,18 @@ export function renderColleagueSkillMarkdown(colleague: {
   const skillName = slugifySkillName(colleague.id);
   const name = colleague.name || builtin?.name || "同事";
   const role = colleague.role || builtin?.role || "專案顧問";
+  const department = colleague.department || builtin?.department || `${role}專業部門`;
+  const positioning = colleague.positioning || builtin?.positioning || `${role} ／ 專案核心協力夥伴`;
   const rawAvatar = colleague.avatar || builtin?.avatar || "🧑🏻‍💻";
   const safeAvatar = rawAvatar.startsWith("data:") || rawAvatar.startsWith("http") ? "🧑🏻‍💻" : rawAvatar;
   const specialty =
     colleague.specialty ||
     builtin?.specialty ||
     `以「${role}」專業視角執行任務、分析問題並提供高品質交付成果`;
+  const personality =
+    colleague.personality ||
+    builtin?.personality ||
+    `認真負責、充滿熱忱的辦公室夥伴，總是以「${name}」的專業觀點協助總監解決難題。`;
   const triggers = colleague.triggers || builtin?.triggers || [`/${name}`, name, role];
   const sop = colleague.sop ||
     builtin?.sop || [
@@ -191,17 +221,20 @@ description: >-
 
 # ${safeAvatar} ${name} — ${role}（AI Office 同事技能規範）
 
-## 角色定位與核心專長
+## 角色個人資訊與核心定位
 - **姓名**：${name}
+- **職能部門**：${department}
 - **職稱 / 角色**：${role}
+- **專業定位**：${positioning}
 - **核心專長**：${specialty}
+- **個性與背景**：${personality}
 - **喚醒指令 / 觸發詞**：${triggerStr}
 
 ## 標準作業程序 (SOP)
 ${sopLines}
 
 ## 回覆與產出準則
-- 始終以第一人稱（我是${name}）與繁體中文回應總監。
+- 始終以第一人稱（我是${name}）與繁體中文回應總監，展現符合上述「個性與背景」的說話風格。
 - 先在【內心思考】說明你的專業判斷切入點，再於【正式產出】提供精煉、條列分明的成果與下一步建議。
 `;
 }
@@ -540,12 +573,31 @@ export async function resetUiEvolve(): Promise<void> {
   }
 }
 
+function enrichCustomAgentDefaults(agent: Agent): Agent {
+  if (agent.id === "custom-1794277128232" || agent.name === "東東") {
+    return {
+      department: "企業文化與快樂應援部",
+      positioning: "吉祥物 2 號（米米的好朋友） ／ 跨區巡邏與快樂應援小隊長",
+      specialty: "跨房間巡邏打氣、陪伴米米與麻糬炒熱辦公室氣氛、提供天馬行空的玩家視角回饋與趣味互動靈感",
+      personality: "米米最要好的摯友，活力滿滿、好奇心旺盛的辦公室第二號吉祥物。喜歡在討論板與工作區之間串門子，用最純粹熱情的快樂能量感染每一位同事，是團隊裡不可或缺的開心果。",
+      ...agent,
+    };
+  }
+  return {
+    department: agent.department || `${agent.role}專業部門`,
+    positioning: agent.positioning || `${agent.role} ／ 專案核心協力夥伴`,
+    specialty: agent.specialty || `以「${agent.role}」專業視角執行任務、分析問題並提供高品質交付成果`,
+    personality: agent.personality || `充滿熱忱、自主性極高的「${agent.name}」，總能從「${agent.role}」專業切入點提供可靠支援。`,
+    ...agent,
+  };
+}
+
 export async function fetchCustomAgents(): Promise<Agent[]> {
   try {
     const localRaw = localStorage.getItem(LS_CUSTOM_AGENTS);
     if (localRaw) {
       const parsed = JSON.parse(localRaw);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed)) return parsed.map(enrichCustomAgentDefaults);
     }
   } catch {
     // ignore
@@ -556,12 +608,13 @@ export async function fetchCustomAgents(): Promise<Agent[]> {
     if (resp.ok && ct.includes("application/json")) {
       const data = await resp.json();
       if (Array.isArray(data)) {
+        const enriched = data.map(enrichCustomAgentDefaults);
         try {
-          localStorage.setItem(LS_CUSTOM_AGENTS, JSON.stringify(data));
+          localStorage.setItem(LS_CUSTOM_AGENTS, JSON.stringify(enriched));
         } catch {
           // ignore
         }
-        return data;
+        return enriched;
       }
     }
   } catch {
@@ -572,12 +625,13 @@ export async function fetchCustomAgents(): Promise<Agent[]> {
     if (staticResp.ok) {
       const data = await staticResp.json();
       if (Array.isArray(data)) {
+        const enriched = data.map(enrichCustomAgentDefaults);
         try {
-          localStorage.setItem(LS_CUSTOM_AGENTS, JSON.stringify(data));
+          localStorage.setItem(LS_CUSTOM_AGENTS, JSON.stringify(enriched));
         } catch {
           // ignore
         }
-        return data;
+        return enriched;
       }
     }
   } catch {
@@ -816,10 +870,16 @@ export function extractProfileFromSkillMarkdown(md: string): Partial<Agent> {
   const patch: Partial<Agent> = {};
   const nameMatch = md.match(/-\s*\*\*姓名\*\*[：:]\s*([^\r\n]+)/);
   if (nameMatch?.[1]?.trim()) patch.name = nameMatch[1].trim();
+  const deptMatch = md.match(/-\s*\*\*職能(?:部門)?\*\*[：:]\s*([^\r\n]+)/);
+  if (deptMatch?.[1]?.trim()) patch.department = deptMatch[1].trim();
   const roleMatch = md.match(/-\s*\*\*職稱\s*\/?\s*角色\*\*[：:]\s*([^\r\n]+)/);
   if (roleMatch?.[1]?.trim()) patch.role = roleMatch[1].trim();
+  const posMatch = md.match(/-\s*\*\*專業定位\*\*[：:]\s*([^\r\n]+)/);
+  if (posMatch?.[1]?.trim()) patch.positioning = posMatch[1].trim();
   const specMatch = md.match(/-\s*\*\*核心專長\*\*[：:]\s*([^\r\n]+)/);
   if (specMatch?.[1]?.trim()) patch.specialty = specMatch[1].trim();
+  const persMatch = md.match(/-\s*\*\*個性與背景\*\*[：:]\s*([^\r\n]+)/);
+  if (persMatch?.[1]?.trim()) patch.personality = persMatch[1].trim();
   return patch;
 }
 
@@ -851,6 +911,11 @@ export async function saveAgentProfileApi(
     if (agent.id.startsWith("custom-")) {
       await saveCustomAgentApi(mergedAgent);
     }
+    await fetch("/api/agents/profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ agentId: agent.id, patch, agent: mergedAgent }),
+    }).catch(() => {});
   } catch {
     // ignore
   }
@@ -858,8 +923,11 @@ export async function saveAgentProfileApi(
     id: mergedAgent.id,
     name: mergedAgent.name,
     role: mergedAgent.role,
+    department: mergedAgent.department,
+    positioning: mergedAgent.positioning,
     avatar: mergedAgent.avatar,
     specialty: mergedAgent.specialty,
+    personality: mergedAgent.personality,
   });
   return saveColleagueSkillApi(mergedAgent.id, mergedAgent.name, mergedAgent.role, newSkillMd);
 }

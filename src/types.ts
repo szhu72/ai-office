@@ -21,6 +21,8 @@ export interface Agent {
   id: string;
   name: string;
   role: string;
+  department?: string;
+  positioning?: string;
   avatar: string;
   status: AgentStatus;
   taskId: string;
@@ -29,6 +31,7 @@ export interface Agent {
   bubble: string;
   latestOutput: string;
   specialty?: string;
+  personality?: string;
   tools: ToolRecord[];
 }
 
