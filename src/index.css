@@ -481,8 +481,39 @@ h1 { margin: 5px 0 2px; font-size: 25px; line-height: 1.2; letter-spacing: -.9px
 .tag-handoff { border-color: #e7dfed; background: #f6f2f8; color: #837393; }
 .feed-empty { padding: 18px; border-top: 1px solid #ede9df; color: #918d82; text-align: center; font-size: 9px; }
 
-.modal-backdrop { position: fixed; z-index: 20; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(38,39,35,.38); backdrop-filter: blur(2px); }
-.action-modal { position: relative; width: min(440px,100%); padding: 25px; border: 1px solid #dcd4c4; border-radius: 5px; background: #fbfaf6; box-shadow: 0 18px 55px rgba(38,39,35,.23); }
+.modal-backdrop {
+  position: fixed !important;
+  z-index: 9999 !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 16px !important;
+  background: rgba(38,39,35,.44) !important;
+  backdrop-filter: blur(2px);
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+.action-modal {
+  position: relative !important;
+  z-index: 10000 !important;
+  width: min(460px, calc(100vw - 32px)) !important;
+  max-width: calc(100vw - 32px) !important;
+  max-height: calc(100vh - 36px) !important;
+  margin: auto !important;
+  padding: 22px !important;
+  border: 2px solid #282b2b;
+  border-radius: 5px;
+  background: #fbfaf6 !important;
+  color: #282b2b !important;
+  box-shadow: 0 18px 55px rgba(38,39,35,.32);
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
 .modal-close { position: absolute; top: 13px; right: 14px; width: 26px; height: 26px; border: 1px solid #e8e3d9; border-radius: 3px; background: #fffdf9; color: #858176; cursor: pointer; font-size: 18px; line-height: 1; }
 .modal-icon { display: grid; width: 34px; height: 34px; margin-bottom: 11px; place-items: center; border: 1px solid #f0d7c2; border-radius: 4px; background: #fff2e7; color: var(--orange); font-size: 19px; }
 .modal-eyebrow { color: #b28a6a; font-family: "Courier New",monospace; font-size: 8px; font-weight: 700; letter-spacing: 1px; }
@@ -795,9 +826,12 @@ h1 { margin: 5px 0 2px; font-size: 25px; line-height: 1.2; letter-spacing: -.9px
 
 /* Game Popup Modal Extras */
 .game-popup-modal {
-  width: min(560px, 100%);
-  border: 2px solid #282b2b;
-  box-shadow: 6px 6px 0 #282b2b, 0 20px 55px rgba(38,39,35,.28);
+  width: min(560px, calc(100vw - 32px)) !important;
+  max-width: calc(100vw - 32px) !important;
+  max-height: calc(100vh - 36px) !important;
+  border: 2px solid #282b2b !important;
+  background: #fbfaf6 !important;
+  box-shadow: 6px 6px 0 #282b2b, 0 20px 55px rgba(38,39,35,.28) !important;
 }
 .rpg-roster {
   display: grid;

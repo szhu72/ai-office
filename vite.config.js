@@ -5,7 +5,7 @@ export default defineConfig({
     plugins: [react()],
     server: {
         watch: {
-            ignored: ["**/public/mimi-reference.png", "**/.venv/**"],
+            ignored: ["**/public/mimi-reference.png", "**/docs/**", "**/.venv/**"],
         },
         // Forward AI requests to the Flask backend (app.py on port 5000)
         proxy: {

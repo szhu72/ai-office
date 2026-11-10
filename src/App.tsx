@@ -1862,7 +1862,10 @@ function GamePopupModal({
                   <div key={t.id} className="popup-list-row">
                     <div>
                       <strong>{t.title}</strong>
-                      <div className="popup-sub">{owner?.avatar} {owner?.name} · 進度 {t.progress}% · {t.status}</div>
+                      <div className="popup-sub row-with-avatar">
+                        {owner && <span className="inline-avatar"><AvatarView avatar={owner.avatar} role={owner.role} /></span>}
+                        <span>{owner?.name} · 進度 {t.progress}% · {t.status}</span>
+                      </div>
                     </div>
                     <div className="popup-row-btns">
                       <button type="button" onClick={() => onSelectTask(t.id)}>詳情</button>
@@ -1890,7 +1893,7 @@ function GamePopupModal({
               {(blocked.length ? blocked : office.agents.slice(0, 2)).map((a) => (
                 <div key={a.id} className="popup-list-row">
                   <div>
-                    <strong>{a.avatar} {a.name}（{a.role}）</strong>
+                    <strong className="row-with-avatar"><span className="inline-avatar"><AvatarView avatar={a.avatar} role={a.role} /></span> <span>{a.name}（{a.role}）</span></strong>
                     <div className="popup-sub">{a.latestOutput}</div>
                   </div>
                   <div className="popup-row-btns">
@@ -1932,14 +1935,16 @@ function GamePopupModal({
                 <button
                   type="button"
                   key={a.id}
-                  className="summon-chip"
+                  className="summon-chip row-with-avatar"
                   onClick={() => onMoveAgent(
                     a,
                     popup.zoneId === "rest" || popup.zoneId === "lounge" ? "idle" : popup.zoneId === "meeting" ? "reviewing" : "thinking",
                     popup.zoneId,
                   )}
                 >
-                  ＋ 召喚 {a.avatar} {a.name}
+                  <span>＋ 召喚</span>
+                  <span className="inline-avatar"><AvatarView avatar={a.avatar} role={a.role} /></span>
+                  <span>{a.name}</span>
                 </button>
               ))}
             </div>
@@ -1954,7 +1959,7 @@ function GamePopupModal({
         return (
           <>
             <span className="modal-eyebrow">RPG DIALOGUE · 一對一深度對話</span>
-            <h2>{agent.avatar} 與「{agent.name}」（{agent.role}）對話</h2>
+            <h2 className="row-with-avatar"><span className="inline-avatar"><AvatarView avatar={agent.avatar} role={agent.role} /></span> <span>與「{agent.name}」（{agent.role}）對話</span></h2>
             <div className="rpg-dialogue-box">
               <div className="rpg-thought-line">💭 內心思考：{lastThought?.thought ?? agent.bubble}</div>
               <div className="rpg-speech-line">「{agent.latestOutput}」</div>
@@ -1995,7 +2000,7 @@ function GamePopupModal({
         return (
           <>
             <span className="modal-eyebrow">TOOL EXECUTION LOG · 工具呼叫紀錄</span>
-            <h2>⌘ {agent.avatar} {agent.name} 的工具與 API 紀錄</h2>
+            <h2 className="row-with-avatar"><span>⌘</span> <span className="inline-avatar"><AvatarView avatar={agent.avatar} role={agent.role} /></span> <span>{agent.name} 的工具與 API 紀錄</span></h2>
             <p>顯示此角色在辦公室中呼叫過的所有內部工具與 Gemini 模型紀錄：</p>
             <div className="popup-list">
               {agent.tools.map((tool, i) => (
@@ -2021,7 +2026,7 @@ function GamePopupModal({
         return (
           <>
             <span className="modal-eyebrow">FULL DELIVERABLE · 完整產出報告</span>
-            <h2>📄 {agent.avatar} {agent.name} 的最新產出與思考脈絡</h2>
+            <h2 className="row-with-avatar"><span>📄</span> <span className="inline-avatar"><AvatarView avatar={agent.avatar} role={agent.role} /></span> <span>{agent.name} 的最新產出與思考脈絡</span></h2>
             {lastThought && (
               <div className="rpg-thought-box">
                 <strong>🧠 思考推理過程（{lastThought.model} · {((lastThought.elapsedMs ?? 1200) / 1000).toFixed(1)}s）：</strong>
@@ -2164,7 +2169,11 @@ function GamePopupModal({
                 return (
                   <div key={ev.id} className="popup-list-row">
                     <div>
-                      <strong>[{ev.time}] {ag?.avatar} {ag?.name ?? "系統"}：{ev.summary}</strong>
+                      <strong className="row-with-avatar">
+                        <span>[{ev.time}]</span>
+                        {ag && <span className="inline-avatar"><AvatarView avatar={ag.avatar} role={ag.role} /></span>}
+                        <span>{ag?.name ?? "系統"}：{ev.summary}</span>
+                      </strong>
                       <div className="popup-sub">{ev.detail}</div>
                     </div>
                   </div>
@@ -2183,7 +2192,7 @@ function GamePopupModal({
         return (
           <>
             <span className="modal-eyebrow">THOUGHT INSPECTOR · 思考狀態明細</span>
-            <h2>🧠 {rec.avatar} {rec.agentName}（{rec.role}）的思考鏈</h2>
+            <h2 className="row-with-avatar"><span>🧠</span> <span className="inline-avatar"><AvatarView avatar={rec.avatar} role={rec.role} /></span> <span>{rec.agentName}（{rec.role}）的思考鏈</span></h2>
             <p>階段：<strong>{rec.stage}</strong> · 模型：<code>{rec.model}</code> · 耗時：{((rec.elapsedMs ?? 1200) / 1000).toFixed(2)} 秒</p>
             <div className="rpg-thought-box">
               <strong>📥 接收到的指令：</strong>
@@ -2390,8 +2399,8 @@ function GamePopupModal({
                   <input
                     type="text"
                     className="ui-field-input"
-                    placeholder="輸入 Emoji 或圖片網址…"
-                    value={newAgentForm.avatar}
+                    placeholder={newAgentForm.avatar.startsWith("data:") ? "已載入上傳圖片（可輸入 Emoji 或新網址覆蓋）" : "輸入 Emoji 或圖片網址…"}
+                    value={newAgentForm.avatar.startsWith("data:") ? "" : newAgentForm.avatar}
                     onChange={(e) => onChangeNewAgentForm({ ...newAgentForm, avatar: e.target.value })}
                   />
                   <label className="upload-avatar-btn" title="從電腦上傳圖片檔">
@@ -2528,13 +2537,13 @@ function GamePopupModal({
               </div>
               <div className="avatar-picker-controls">
                 <label className="modal-label">
-                  直接輸入 Emoji 或圖片網址 (URL / Data URI)
+                  直接輸入 Emoji 或圖片網址 (URL)
                   <input
                     type="text"
                     className="ui-field-input"
-                    value={input}
+                    value={input.startsWith("data:") ? "" : input}
                     onChange={(e) => onInput(e.target.value)}
-                    placeholder="輸入 Emoji 或 https://... 圖片網址"
+                    placeholder={input.startsWith("data:") ? "已套用上傳圖片（可輸入 Emoji 或新網址替換）" : "輸入 Emoji 或 https://... 圖片網址"}
                   />
                 </label>
                 <div className="avatar-upload-row">
