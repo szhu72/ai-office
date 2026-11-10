@@ -8,6 +8,8 @@ export type OfficeAction =
   | { type: "agent.hydrateCustom"; agents: Agent[] }
   | { type: "agent.avatar"; agentId: string; avatar: string; event: ActivityEvent }
   | { type: "agent.hydrateAvatars"; avatars: Record<string, string> }
+  | { type: "agent.updateProfile"; agentId: string; patch: Partial<Agent>; event: ActivityEvent }
+  | { type: "agent.hydrateProfiles"; profiles: Record<string, Partial<Agent>> }
   | { type: "task.create"; task: OfficeTask; ownerId: string; event: ActivityEvent }
   | { type: "task.approve"; taskId: string; event: ActivityEvent }
   | { type: "task.revise"; taskId?: string; ownerId: string; event: ActivityEvent }
@@ -109,6 +111,19 @@ export class LocalOfficeDataSource implements OfficeDataSource {
         this.snapshot = {
           ...this.snapshot,
           agents: this.snapshot.agents.map((a) => action.avatars[a.id] ? { ...a, avatar: action.avatars[a.id] } : a),
+        };
+        break;
+      case "agent.updateProfile":
+        this.snapshot = {
+          ...this.snapshot,
+          agents: this.snapshot.agents.map((a) => a.id === action.agentId ? { ...a, ...action.patch } : a),
+          events: [action.event, ...this.snapshot.events],
+        };
+        break;
+      case "agent.hydrateProfiles":
+        this.snapshot = {
+          ...this.snapshot,
+          agents: this.snapshot.agents.map((a) => action.profiles[a.id] ? { ...a, ...action.profiles[a.id] } : a),
         };
         break;
       case "task.create":

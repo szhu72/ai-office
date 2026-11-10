@@ -14,6 +14,7 @@ const LS_UI_PATCH = "ai_office_ui_patch_v1";
 const LS_CUSTOM_AGENTS = "ai_office_custom_agents_v1";
 const LS_AVATARS = "ai_office_avatars_v1";
 const LS_SKILLS = "ai_office_skills_v1";
+const LS_PROFILES = "ai_office_agent_profiles_v1";
 
 const BROWSER_MODELS = [
   "gemini-3.8-flash",
@@ -809,4 +810,56 @@ export async function saveColleagueSkillApi(
     // ignore
   }
   return localInfo;
+}
+
+export function extractProfileFromSkillMarkdown(md: string): Partial<Agent> {
+  const patch: Partial<Agent> = {};
+  const nameMatch = md.match(/-\s*\*\*姓名\*\*[：:]\s*([^\r\n]+)/);
+  if (nameMatch?.[1]?.trim()) patch.name = nameMatch[1].trim();
+  const roleMatch = md.match(/-\s*\*\*職稱\s*\/?\s*角色\*\*[：:]\s*([^\r\n]+)/);
+  if (roleMatch?.[1]?.trim()) patch.role = roleMatch[1].trim();
+  const specMatch = md.match(/-\s*\*\*核心專長\*\*[：:]\s*([^\r\n]+)/);
+  if (specMatch?.[1]?.trim()) patch.specialty = specMatch[1].trim();
+  return patch;
+}
+
+export async function fetchAgentProfiles(): Promise<Record<string, Partial<Agent>>> {
+  try {
+    const raw = localStorage.getItem(LS_PROFILES);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") return parsed;
+    }
+  } catch {
+    // ignore
+  }
+  return {};
+}
+
+export async function saveAgentProfileApi(
+  agent: Agent,
+  patch: Partial<Agent>,
+): Promise<ColleagueSkillInfo | null> {
+  const mergedAgent: Agent = { ...agent, ...patch };
+  try {
+    const currentProfiles = await fetchAgentProfiles();
+    currentProfiles[agent.id] = { ...(currentProfiles[agent.id] || {}), ...patch };
+    localStorage.setItem(LS_PROFILES, JSON.stringify(currentProfiles));
+    if (patch.avatar) {
+      await saveAvatarOverrideApi(agent.id, patch.avatar);
+    }
+    if (agent.id.startsWith("custom-")) {
+      await saveCustomAgentApi(mergedAgent);
+    }
+  } catch {
+    // ignore
+  }
+  const newSkillMd = renderColleagueSkillMarkdown({
+    id: mergedAgent.id,
+    name: mergedAgent.name,
+    role: mergedAgent.role,
+    avatar: mergedAgent.avatar,
+    specialty: mergedAgent.specialty,
+  });
+  return saveColleagueSkillApi(mergedAgent.id, mergedAgent.name, mergedAgent.role, newSkillMd);
 }

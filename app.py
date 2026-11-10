@@ -25,6 +25,7 @@ WORKSPACE_ROOT = BASE_DIR.parent
 CUSTOM_UI_PATH = BASE_DIR / "custom_ui_state.json"
 CUSTOM_AGENTS_PATH = BASE_DIR / "custom_agents.json"
 AVATARS_PATH = BASE_DIR / "avatar_overrides.json"
+PROFILES_PATH = BASE_DIR / "agent_profiles.json"
 
 SKILL_ROOTS = [
     WORKSPACE_ROOT / ".agents" / "skills",
@@ -507,6 +508,67 @@ def save_avatar():
         existing[agent_id] = avatar
     AVATARS_PATH.write_text(json.dumps(existing, ensure_ascii=False, indent=2), encoding="utf-8")
     return jsonify({"ok": True, "avatars": existing})
+
+
+@app.get("/api/agents/profile")
+def get_agent_profiles():
+    if PROFILES_PATH.exists():
+        try:
+            return jsonify(json.loads(PROFILES_PATH.read_text(encoding="utf-8")))
+        except Exception:
+            pass
+    return jsonify({})
+
+
+@app.post("/api/agents/profile")
+def save_agent_profile():
+    data = request.get_json(silent=True) or {}
+    agent_id = data.get("agentId")
+    patch = data.get("patch") or {}
+    full_agent = data.get("agent") or {}
+    if not agent_id:
+        return jsonify({"error": "agentId is required"}), 400
+
+    profiles = {}
+    if PROFILES_PATH.exists():
+        try:
+            profiles = json.loads(PROFILES_PATH.read_text(encoding="utf-8"))
+        except Exception:
+            profiles = {}
+    profiles[agent_id] = {**(profiles.get(agent_id) or {}), **patch}
+    PROFILES_PATH.write_text(json.dumps(profiles, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    # Sync public/data/agent_profiles.json as well
+    pub_data = BASE_DIR / "public" / "data"
+    if pub_data.exists():
+        try:
+            (pub_data / "agent_profiles.json").write_text(json.dumps(profiles, ensure_ascii=False, indent=2), encoding="utf-8")
+        except Exception:
+            pass
+
+    # If custom agent, also update custom_agents.json
+    if str(agent_id).startswith("custom-") and CUSTOM_AGENTS_PATH.exists():
+        try:
+            custom_list = json.loads(CUSTOM_AGENTS_PATH.read_text(encoding="utf-8"))
+            custom_list = [
+                {**a, **patch} if a.get("id") == agent_id else a
+                for a in custom_list
+            ]
+            CUSTOM_AGENTS_PATH.write_text(json.dumps(custom_list, ensure_ascii=False, indent=2), encoding="utf-8")
+        except Exception:
+            pass
+
+    # Update SKILL.md for this colleague
+    builtin_match = next((b for b in BUILTIN_COLLEAGUES if b["id"] == agent_id), {})
+    colleague_dict = {
+        **builtin_match,
+        **full_agent,
+        **patch,
+        "id": agent_id,
+    }
+    skill_info = write_colleague_skill_files(colleague_dict)
+    SKILL_INDEX[agent_id] = skill_info
+    return jsonify({"ok": True, "profiles": profiles, "skill": skill_info})
 
 
 @app.route("/", defaults={"path": ""})

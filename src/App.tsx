@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
 import { officeDataSource } from "./officeDataSource";
-import { askAgent, askMeetingBrainstorm, askUiEvolve, deleteCustomAgentApi, fetchAvatarOverrides, fetchColleagueSkills, fetchCustomAgents, fetchSavedUiPatch, getBrowserApiKey, resetUiEvolve, saveAvatarOverrideApi, saveColleagueSkillApi, saveCustomAgentApi, setBrowserApiKey, type ColleagueSkillInfo, type UiEvolutionPatch } from "./aiClient";
+import { askAgent, askMeetingBrainstorm, askUiEvolve, deleteCustomAgentApi, extractProfileFromSkillMarkdown, fetchAgentProfiles, fetchAvatarOverrides, fetchColleagueSkills, fetchCustomAgents, fetchSavedUiPatch, getBrowserApiKey, resetUiEvolve, saveAgentProfileApi, saveAvatarOverrideApi, saveColleagueSkillApi, saveCustomAgentApi, setBrowserApiKey, type ColleagueSkillInfo, type UiEvolutionPatch } from "./aiClient";
 import MascotAvatar from "./MascotAvatar";
 import type {
   ActivityEvent,
@@ -74,12 +74,13 @@ type GamePopup =
   | { kind: "thought-detail"; recordId: string }
   | { kind: "ui-studio" }
   | { kind: "agent-create" }
+  | { kind: "agent-edit"; agentId: string }
   | { kind: "avatar-picker"; agentId: string }
   | { kind: "skill-viewer"; agentId?: string }
   | { kind: "api-key" };
 
 const AVATAR_PRESETS = [
-  "🧑🏻‍💼", "🧑🏻‍🔬", "👩🏻‍💻", "👨🏻‍💼", "🧑🏻‍⚖️", "🕵🏻‍♂️", "🧙🏻‍♀️", "🦸🏻‍♂️",
+  "💼", "🔬", "👩🏻‍💻", "👨🏻‍💼", "‍⚖️", "🕵🏻‍♂️", "🧙🏻‍♀️", "🦸🏻‍♂️",
   "👩🏻‍🎨", "🧑🏻‍🚀", "🥷🏻", "🤖", "🦊", "🐱", "🐼", "🦉",
   "🦁", "🐸", "🐶", "🦄", "👾", "🎮", "💎", "⚡",
 ];
@@ -182,14 +183,29 @@ function App() {
     specialty: "",
     initialTask: "",
   });
+  const [editAgentForm, setEditAgentForm] = useState({
+    id: "planner",
+    name: "",
+    role: "",
+    avatar: "🧑🏻‍💼",
+    zoneId: "work",
+    status: "thinking" as AgentStatus,
+    bubble: "",
+    specialty: "",
+    latestOutput: "",
+  });
   const [skillsMap, setSkillsMap] = useState<Record<string, ColleagueSkillInfo>>({});
   const [browserApiKey, setBrowserApiKeyState] = useState<string>(() => getBrowserApiKey());
 
-  // Load saved AI UI patch, custom agents, avatar overrides & generated SKILL.md index on startup
+  // Load saved AI UI patch, custom agents, profile overrides, avatar overrides & generated SKILL.md index on startup
   useEffect(() => {
     void fetchCustomAgents().then(async (savedAgents) => {
       if (savedAgents.length) {
         officeDataSource.dispatch({ type: "agent.hydrateCustom", agents: savedAgents });
+      }
+      const profiles = await fetchAgentProfiles();
+      if (Object.keys(profiles).length) {
+        officeDataSource.dispatch({ type: "agent.hydrateProfiles", profiles });
       }
       const overrides = await fetchAvatarOverrides();
       if (Object.keys(overrides).length) {
@@ -596,6 +612,76 @@ function App() {
     });
   };
 
+  // Open character personal profile editor for any built-in or custom colleague
+  const openEditAgent = (agent: Agent) => {
+    const skillMd = skillsMap[agent.id]?.content ?? "";
+    const parsedFromSkill = skillMd ? extractProfileFromSkillMarkdown(skillMd) : {};
+    setEditAgentForm({
+      id: agent.id,
+      name: agent.name,
+      role: agent.role,
+      avatar: agent.avatar,
+      zoneId: agent.zoneId,
+      status: agent.status,
+      bubble: agent.bubble,
+      specialty: agent.specialty ?? parsedFromSkill.specialty ?? `以「${agent.role}」專業視角執行任務、分析問題並提供高品質交付成果`,
+      latestOutput: agent.latestOutput,
+    });
+    setPopup({ kind: "agent-edit", agentId: agent.id });
+  };
+
+  // Save edited personal profile and immediately reflect on map, side panel, thoughts, and SKILL.md
+  const submitEditAgent = async () => {
+    const target = office.agents.find((a) => a.id === editAgentForm.id) ?? office.agents[0];
+    if (!target) return;
+    const patch: Partial<Agent> = {
+      name: editAgentForm.name.trim() || target.name,
+      role: editAgentForm.role.trim() || target.role,
+      avatar: editAgentForm.avatar.trim() || target.avatar,
+      zoneId: editAgentForm.zoneId || target.zoneId,
+      status: editAgentForm.status || target.status,
+      bubble: editAgentForm.bubble.trim() || target.bubble,
+      specialty: editAgentForm.specialty.trim() || target.specialty,
+      latestOutput: editAgentForm.latestOutput.trim() || target.latestOutput,
+    };
+
+    officeDataSource.dispatch({
+      type: "agent.updateProfile",
+      agentId: target.id,
+      patch,
+      event: createEvent(
+        target.id,
+        "file",
+        `已更新角色個人資訊：${patch.name}（${patch.role}）`,
+        `頭頂對話：「${patch.bubble}」｜專長：${patch.specialty ?? ""}`,
+      ),
+    });
+
+    setThoughts((prev) =>
+      prev.map((t) =>
+        t.agentId === target.id
+          ? {
+              ...t,
+              agentName: patch.name ?? t.agentName,
+              role: patch.role ?? t.role,
+              avatar: patch.avatar ?? t.avatar,
+            }
+          : t,
+      ),
+    );
+
+    const updatedAgent: Agent = { ...target, ...patch };
+    const savedSkill = await saveAgentProfileApi(updatedAgent, patch);
+    if (savedSkill) {
+      setSkillsMap((prev) => ({ ...prev, [target.id]: savedSkill }));
+    } else {
+      const refreshed = await fetchColleagueSkills();
+      setSkillsMap(refreshed);
+    }
+    setSelection({ kind: "agent", id: target.id });
+    setPopup(null);
+  };
+
   // Run one round of autonomous office simulation across active agents
   const runOfficeRound = () => {
     const candidates = office.agents.filter((a) => a.status !== "idle").slice(0, 2);
@@ -693,8 +779,10 @@ function App() {
         <div className="brand-lockup">
           <div className="brand-mark" aria-hidden="true"><span>O</span></div>
           <div>
-            <div className="brand-name">{uiPatch?.brandTitle || "無所事事辦公室"} <span>AI OFFICE · RPG EDITION</span></div>
-            <div className="brand-subtitle">第三方總監指揮空間 <i /> {today}</div>
+            <div className="brand-name">
+              {uiPatch?.brandTitle || "無所事事辦公室"}
+              <span className="status-icon-badge" title="系統連線正常"><i className="live-dot" /> {today}</span>
+            </div>
           </div>
         </div>
         <div className="topbar-right">
@@ -705,33 +793,41 @@ function App() {
               setPopup({ kind: "api-key" });
               setPopupInput(browserApiKey);
             }}
-            title="設定手機 / GitHub Pages 瀏覽器端直連 Gemini API Key（僅保存在你的裝置本機）"
+            title="設定手機 / GitHub Pages 瀏覽器端直連 Gemini API Key"
           >
-            🔑 {browserApiKey ? "金鑰已設定" : "金鑰設定"}
+            🔑 {browserApiKey ? "金鑰已設" : "金鑰"}
           </button>
           <button
             type="button"
             className={`secondary-top-button ${mobile916 ? "hud-pulsing" : ""}`}
             onClick={() => setMobile916((v) => !v)}
-            title="一鍵切換 9:16 手機直向介面模板與桌機寬螢幕"
+            title="切換 9:16 手機直向介面與桌機寬螢幕"
           >
-            {mobile916 ? "🖥️ 切回桌機版" : "📱 9:16 手機版"}
+            {mobile916 ? "🖥️ 桌機" : "📱 9:16"}
           </button>
           <button
             type="button"
             className="secondary-top-button ui-studio-btn"
             onClick={() => { setPopup({ kind: "ui-studio" }); setPopupInput(""); }}
-            title="填寫結構化欄位讓阿研更新網站介面"
+            title="調整網站外觀與排版"
           >
-            🎨 AI 改介面
+            🎨 改介面
           </button>
           <button
             type="button"
             className="secondary-top-button"
             onClick={() => setPopup({ kind: "agent-create" })}
-            title="建立全新的 AI 角色並自動生成專屬 SKILL.md"
+            title="招募新 AI 角色"
           >
-            🧑🏻‍🎨 ＋ 新角色
+            🧑🏻‍🎨 ＋新角色
+          </button>
+          <button
+            type="button"
+            className="secondary-top-button"
+            onClick={() => openEditAgent(selectedAgent ?? office.agents[0])}
+            title="編輯目前選取角色的名稱、職稱、對話氣泡、頭像與專長"
+          >
+            ✎ 角色設定
           </button>
           <button
             type="button"
@@ -741,9 +837,9 @@ function App() {
               setPopup({ kind: "skill-viewer", agentId: targetId });
               setPopupInput(skillsMap[targetId]?.content ?? "");
             }}
-            title="檢視或編輯每位同事自動生成的 Antigravity SKILL.md 技能包"
+            title="檢視或編輯每位同事的 SKILL.md 技能包"
           >
-            📘 同事 Skills ({Object.keys(skillsMap).length || office.agents.length})
+            📘 Skills ({Object.keys(skillsMap).length || office.agents.length})
           </button>
           <button
             type="button"
@@ -752,7 +848,7 @@ function App() {
             title="開啟 AI 思考狀態監控窗"
           >
             <span className="live-dot" />
-            🧠 思考監控 ({anyRunning ? `${Object.keys(thinkingAgents).length} 思考中` : `${thoughts.length} 筆`})
+            🧠 {anyRunning ? `${Object.keys(thinkingAgents).length} 思考中` : thoughts.length}
           </button>
           <button
             type="button"
@@ -761,22 +857,15 @@ function App() {
             disabled={anyRunning}
             title="讓正在工作的 AI 同事自動推進一回合"
           >
-            ⚡ {anyRunning ? "AI 推論中…" : "推進一回合"}
+            ⚡ {anyRunning ? "推論中…" : "推進"}
           </button>
           <button
             type="button"
             className="secondary-top-button"
             onClick={() => { setPopup({ kind: "director" }); setPopupInput(""); }}
+            title="開啟總監指令台"
           >
-            🎮 總監指令台
-          </button>
-          <button
-            type="button"
-            className="topbar-avatar"
-            title="點擊查看總監個人檔案與系統狀態"
-            onClick={() => { setPopup({ kind: "director" }); setPopupInput(""); }}
-          >
-            Y
+            🎮 指令台
           </button>
           <button className="primary-button assign-button" onClick={() => setModal("assign")}>
             <span>＋</span> 派任務
@@ -787,48 +876,50 @@ function App() {
       <main className="workspace">
         <section className="main-column" aria-label="辦公室工作空間">
           <div className="overview-row">
-            <div>
-              <div className="eyebrow">DIRECTOR COMMAND MODE <span className="eyebrow-line" /></div>
+            <div className="overview-title-block">
               <h1>{uiPatch?.headline || "早安，總監"} <span className="wave">✳</span></h1>
-              <p className="overview-copy">點擊任何房間、同事、數據卡或按鈕都會彈出互動視窗；點右上「🎨 AI 改介面」可直接叫 AI 修改網站外觀與排版。</p>
             </div>
             <div className="summary-cards">
               <button
                 type="button"
                 className="summary-card summary-card-clickable"
                 onClick={() => setPopup({ kind: "summary-active" })}
+                title="查看正在工作的同事"
               >
                 <span className="summary-icon icon-orange">✳</span>
-                <div><strong>{activeAgents}<small> / {office.agents.length}</small></strong><span>正在工作 ↗</span></div>
+                <div><strong>{activeAgents}<small> / {office.agents.length}</small></strong><span>工作中</span></div>
               </button>
               <button
                 type="button"
                 className="summary-card summary-card-clickable"
                 onClick={() => setPopup({ kind: "summary-tasks" })}
+                title="查看進行中任務"
               >
                 <span className="summary-icon icon-blue">⌁</span>
-                <div><strong>{office.tasks.filter((task) => task.status !== "已核准").length}<small> 項</small></strong><span>進行中任務 ↗</span></div>
+                <div><strong>{office.tasks.filter((task) => task.status !== "已核准").length}<small> 項</small></strong><span>任務</span></div>
               </button>
               <button
                 type="button"
                 className={`summary-card summary-card-clickable ${blockedAgents ? "attention-card" : ""}`}
                 onClick={() => setPopup({ kind: "summary-blocked" })}
+                title="查看需要協助的項目"
               >
                 <span className="summary-icon icon-amber">!</span>
-                <div><strong>{blockedAgents}<small> 項</small></strong><span>需要你看看 ↗</span></div>
+                <div><strong>{blockedAgents}<small> 項</small></strong><span>待確認</span></div>
               </button>
             </div>
           </div>
 
           <div className="scene-toolbar">
             <div className="scene-title">
-              <span className="scene-spark">✳</span> 今日辦公室 <span className="scene-count">0{office.agents.length} 位 AI 同事</span>
+              <span className="scene-spark">✳</span> 辦公室地圖
+              <span className="scene-count" title="在場人數">👥 {office.agents.length}</span>
               {anyRunning && <span className="thinking-banner">💭 {Object.values(thinkingAgents)[0]}</span>}
             </div>
             <div className="scene-key">
-              <button type="button" className="key-chip" onClick={() => setPopup({ kind: "summary-active" })}><i className="key-dot working" />工作中</button>
-              <button type="button" className="key-chip" onClick={() => setPopup({ kind: "zone", zoneId: "rest" })}><i className="key-dot break" />休息區</button>
-              <button type="button" className="key-chip" onClick={() => setPopup({ kind: "summary-blocked" })}><i className="key-dot stuck" />需要協助</button>
+              <button type="button" className="key-chip" onClick={() => setPopup({ kind: "summary-active" })} title="工作中"><i className="key-dot working" />工作中</button>
+              <button type="button" className="key-chip" onClick={() => setPopup({ kind: "zone", zoneId: "rest" })} title="休息中"><i className="key-dot break" />休息</button>
+              <button type="button" className="key-chip" onClick={() => setPopup({ kind: "summary-blocked" })} title="需要協助"><i className="key-dot stuck" />需協助</button>
             </div>
           </div>
 
@@ -847,18 +938,17 @@ function App() {
 
           <div className="scene-footer">
             <div>
-              <span className="footer-indicator" /> Gemini 即時連線中
-              <span className="footer-divider">·</span>
+              <span className="footer-indicator" title="Gemini 連線就緒" />
               <button type="button" onClick={() => { setShowMonitor(true); setMonitorMinimized(false); }}>
-                開啟思考狀態監控窗 ({thoughts.length})
+                🧠 思考監控 ({thoughts.length})
               </button>
             </div>
             <div className="scene-footer-actions">
               <button type="button" onClick={() => { setPopup({ kind: "meeting-brainstorm" }); setPopupInput(""); }}>
-                🧠 召開 AI 腦力激盪 <span>↗</span>
+                🧠 腦力激盪 <span>↗</span>
               </button>
               <button type="button" onClick={() => setSelection({ kind: "meeting" })}>
-                查看團隊決策 <span>↗</span>
+                📋 團隊決策 <span>↗</span>
               </button>
             </div>
           </div>
@@ -891,6 +981,7 @@ function App() {
               onOpenTools={() => setPopup({ kind: "agent-tools", agentId: selectedAgent.id })}
               onOpenOutput={() => setPopup({ kind: "agent-output", agentId: selectedAgent.id })}
               onOpenAvatarPicker={() => { setPopup({ kind: "avatar-picker", agentId: selectedAgent.id }); setPopupInput(selectedAgent.avatar); }}
+              onOpenEditProfile={() => openEditAgent(selectedAgent)}
               skillInfo={skillsMap[selectedAgent.id]}
               onOpenSkill={() => {
                 setPopup({ kind: "skill-viewer", agentId: selectedAgent.id });
@@ -1038,6 +1129,10 @@ function App() {
           newAgentForm={newAgentForm}
           onChangeNewAgentForm={setNewAgentForm}
           onSubmitCreateAgent={submitCreateAgent}
+          editAgentForm={editAgentForm}
+          onChangeEditAgentForm={setEditAgentForm}
+          onOpenEditAgent={openEditAgent}
+          onSubmitEditAgent={() => { void submitEditAgent(); }}
           onDeleteCustomAgent={(agentId) => {
             officeDataSource.dispatch({
               type: "agent.remove",
@@ -1057,8 +1152,8 @@ function App() {
               event: createEvent(agentId, "file", `${target?.name ?? "同事"} 更換了新頭像`, "已更新角色個人頭像設定。"),
             });
             void saveAvatarOverrideApi(agentId, newAvatar);
-            if (target?.id.startsWith("custom-")) {
-              void saveCustomAgentApi({ ...target, avatar: newAvatar });
+            if (target) {
+              void saveAgentProfileApi({ ...target, avatar: newAvatar }, { avatar: newAvatar });
             }
             setPopup(null);
           }}
@@ -1069,10 +1164,46 @@ function App() {
           }}
           onSaveSkillMarkdown={async (agentId, mdContent) => {
             const ag = office.agents.find((a) => a.id === agentId) ?? office.agents[0];
-            const saved = await saveColleagueSkillApi(ag.id, ag.name, ag.role, mdContent);
+            const extracted = extractProfileFromSkillMarkdown(mdContent);
+            const patch: Partial<Agent> = {
+              ...(extracted.name ? { name: extracted.name } : {}),
+              ...(extracted.role ? { role: extracted.role } : {}),
+              ...(extracted.specialty ? { specialty: extracted.specialty } : {}),
+            };
+            if (Object.keys(patch).length > 0) {
+              officeDataSource.dispatch({
+                type: "agent.updateProfile",
+                agentId: ag.id,
+                patch,
+                event: createEvent(
+                  ag.id,
+                  "file",
+                  `從 SKILL.md 同步更新角色資訊：${patch.name ?? ag.name}（${patch.role ?? ag.role}）`,
+                  patch.specialty ?? "",
+                ),
+              });
+              setThoughts((prev) =>
+                prev.map((t) =>
+                  t.agentId === ag.id
+                    ? {
+                        ...t,
+                        agentName: patch.name ?? t.agentName,
+                        role: patch.role ?? t.role,
+                      }
+                    : t,
+                ),
+              );
+              await saveAgentProfileApi({ ...ag, ...patch }, patch);
+            }
+            const saved = await saveColleagueSkillApi(
+              ag.id,
+              patch.name ?? ag.name,
+              patch.role ?? ag.role,
+              mdContent,
+            );
             if (saved) {
               setSkillsMap((prev) => ({ ...prev, [ag.id]: saved }));
-              addEvent(ag.id, "file", `已更新 ${ag.name} 的 SKILL.md`, saved.paths[0] ?? "");
+              addEvent(ag.id, "file", `已更新 ${patch.name ?? ag.name} 的 SKILL.md`, saved.paths[0] ?? "");
             }
             setPopup(null);
           }}
@@ -1130,18 +1261,23 @@ function OfficeScene({
               <div className="zone-head">
                 <div className="zone-label">
                   <span className="zone-marker">{zone.marker}</span>
-                  <div><h2>{zone.name}</h2><span>{zone.subtitle}</span></div>
+                  <h2>{zone.name}</h2>
                 </div>
-                {zone.kind === "work" && <span className="zone-live"><i /> {agents.length} 位忙碌</span>}
-                {zone.kind === "tasks" && <span className="task-wall-count">{office.tasks.filter((task) => task.status !== "已核准").length} OPEN</span>}
-                <button
-                  type="button"
-                  className="zone-arrow"
-                  aria-label={`開啟${zone.name}視窗`}
-                  onClick={(event) => { event.stopPropagation(); onSelectZone(zone.id); }}
-                >
-                  ↗
-                </button>
+                <div className="zone-status-icons">
+                  {zone.kind === "work" && <span className="zone-live" title="工作中人數"><i /> {agents.length}</span>}
+                  {zone.kind === "tasks" && <span className="task-wall-count" title="進行中任務">{office.tasks.filter((task) => task.status !== "已核准").length} ⌁</span>}
+                  {zone.kind !== "work" && zone.kind !== "tasks" && agents.length > 0 && (
+                    <span className="zone-live" title="房內人數"><i /> {agents.length}</span>
+                  )}
+                  <button
+                    type="button"
+                    className="zone-arrow"
+                    aria-label={`開啟${zone.name}視窗`}
+                    onClick={(event) => { event.stopPropagation(); onSelectZone(zone.id); }}
+                  >
+                    ↗
+                  </button>
+                </div>
               </div>
               {zone.kind === "work" && <WorkProps />}
               {zone.kind === "break" && <BreakProps lounge={zone.id === "lounge"} />}
@@ -1181,14 +1317,9 @@ function OfficeScene({
                   ))}
                 </div>
               )}
-              {zone.id === "work" && <DeskShape />}
             </section>
           );
         })}
-      </div>
-      <div className="map-caption">
-        <span className="pixel-sun">✳</span> 辦公室平面圖（單擊角色查看狀態 · 雙擊角色直接對話 · 點擊房間開啟區域選單）
-        <span>ISOMETRIC RPG VIEW · 2D</span>
       </div>
     </div>
   );
@@ -1210,6 +1341,8 @@ function AgentSprite({
   delay: number;
 }) {
   const isThinking = Boolean(thinkingStage) || agent.status === "thinking";
+  const dialogueText = thinkingStage || agent.bubble;
+  const isLongDialogue = dialogueText.length > 14;
   return (
     <button
       type="button"
@@ -1218,9 +1351,9 @@ function AgentSprite({
       onDoubleClick={(event) => { event.stopPropagation(); onDoubleClick(); }}
       style={{ animationDelay: `${delay}s` }}
       aria-label={`查看${agent.name}，${agent.role}，${statusNames[agent.status]}`}
-      title="單擊查看面板 · 雙擊開啟 RPG 對話視窗"
+      title="單擊查看面板 · 雙擊開啟對話視窗"
     >
-      <span className={`speech-bubble ${isThinking ? "speech-bubble-thinking" : ""}`}>
+      <span className={`speech-bubble ${isThinking ? "speech-bubble-thinking" : ""} ${isLongDialogue ? "speech-bubble-expanded" : ""}`}>
         {thinkingStage ? (
           <>
             {thinkingStage}
@@ -1228,12 +1361,14 @@ function AgentSprite({
           </>
         ) : agent.bubble}
       </span>
-      <span className="sprite-shadow" />
-      <span className={`sprite-avatar ${agent.role === "吉祥物" ? "mascot-avatar" : ""}`}>
-        <AvatarView avatar={agent.avatar} role={agent.role} />
-        {isThinking && <i className="sprite- halo-ring" />}
+      <span className="sprite-figure">
+        <span className="sprite-shadow" />
+        <span className={`sprite-avatar ${agent.role === "吉祥物" ? "mascot-avatar" : ""}`}>
+          <AvatarView avatar={agent.avatar} role={agent.role} />
+          {isThinking && <i className="sprite-halo-ring" />}
+        </span>
+        <span className="sprite-status-dot" title={statusNames[agent.status]} />
       </span>
-      <span className="sprite-status-dot" />
       <span className="sprite-name">{agent.name}</span>
       <span className="sprite-role">{agent.role}</span>
     </button>
@@ -1248,10 +1383,6 @@ function WorkProps() {
       <div className="plant"><i /><i /><i /><b /></div>
     </div>
   );
-}
-
-function DeskShape() {
-  return <div className="work-zone-sticker" aria-hidden="true"><span />FOCUS MODE</div>;
 }
 
 function BreakProps({ lounge }: { lounge: boolean }) {
@@ -1275,7 +1406,7 @@ function MeetingProps() {
   return (
     <div className="meeting-props" aria-hidden="true">
       <div className="meeting-table"><i /><i /><i /><i /></div>
-      <div className="meeting-signal"><span /> 正在同步</div>
+      <div className="meeting-signal" title="同步中"><span /></div>
     </div>
   );
 }
@@ -1293,6 +1424,7 @@ function AgentPanel({
   onOpenTools,
   onOpenOutput,
   onOpenAvatarPicker,
+  onOpenEditProfile,
   skillInfo,
   onOpenSkill,
 }: {
@@ -1308,6 +1440,7 @@ function AgentPanel({
   onOpenTools: () => void;
   onOpenOutput: () => void;
   onOpenAvatarPicker: () => void;
+  onOpenEditProfile: () => void;
   skillInfo?: ColleagueSkillInfo;
   onOpenSkill: () => void;
 }) {
@@ -1318,7 +1451,7 @@ function AgentPanel({
           type="button"
           className={`person-avatar person-avatar-clickable ${agent.role === "吉祥物" ? "person-mascot" : ""}`}
           onClick={onOpenAvatarPicker}
-          title="點擊自由更換角色頭像（支援上傳圖片或挑選圖示）"
+          title="點擊更換頭像"
         >
           <span className="avatar-clip-box">
             <AvatarView avatar={agent.avatar} role={agent.role} />
@@ -1328,42 +1461,39 @@ function AgentPanel({
         <div className="person-meta">
           <h2>{agent.name}</h2>
           <span>
-            {agent.role} <i /> <button type="button" className="change-avatar-link" onClick={onOpenAvatarPicker}>更換頭像 ✎</button>
-            <i /> <button type="button" className="change-avatar-link" onClick={onOpenSkill}>📘 {skillInfo?.skillName ?? "SKILL.md"}</button>
+            {agent.role} <i /> <button type="button" className="change-avatar-link" onClick={onOpenEditProfile}>✎ 編輯個人資訊</button>
+            <i /> <button type="button" className="change-avatar-link" onClick={onOpenSkill} title={skillInfo?.skillName ?? "SKILL.md"}>📘 Skill</button>
           </span>
         </div>
-        <span className={`status-pill ${statusClasses[agent.status]}`}><i />{thinkingStage ? "Gemini 推論中" : statusNames[agent.status]}</span>
+        <span className={`status-pill ${statusClasses[agent.status]}`}><i />{thinkingStage ? "推論中" : statusNames[agent.status]}</span>
       </div>
 
-      {thinkingStage ? (
-        <div className="attention-note note-thinking">
-          <span className="note-icon">💭</span>
-          <div>
-            <strong>{thinkingStage}</strong>
-            <p>正在透過 Gemini 進行角色推理，請稍候 1~3 秒…</p>
+      <div className="character-dialogue-stage">
+        <div className={`attention-note adaptive-dialogue-card ${thinkingStage ? "note-thinking" : agent.status === "blocked" || agent.status === "error" ? "note-warning" : ""}`}>
+          <span className="note-icon">{thinkingStage ? "💭" : agent.status === "blocked" || agent.status === "error" ? "!" : "💬"}</span>
+          <div className="adaptive-dialogue-body">
+            <strong>{thinkingStage ? thinkingStage : `${agent.name}：「${agent.bubble}」`}</strong>
+            {latestThought && !thinkingStage && (
+              <p>🧠 {latestThought.thought}</p>
+            )}
+            {agent.specialty && (
+              <p className="agent-specialty-tag">🎯 專長：{agent.specialty}</p>
+            )}
           </div>
         </div>
-      ) : (
-        <div className={`attention-note ${agent.status === "blocked" || agent.status === "error" ? "note-warning" : ""}`}>
-          <span className="note-icon">{agent.status === "blocked" || agent.status === "error" ? "!" : "✳"}</span>
-          <div>
-            <strong>{agent.status === "blocked" || agent.status === "error" ? "需要你的協助" : "內心思考摘要"}</strong>
-            <p>{latestThought ? latestThought.thought : agent.bubble}</p>
-          </div>
-        </div>
-      )}
+      </div>
 
-      <PanelSection title="正在處理" action="查看任務" onAction={onSelectTask}>
+      <PanelSection title="正在處理" action="詳情" onAction={onSelectTask}>
         <button type="button" className="current-task-card" onClick={onSelectTask}>
-          <div className="task-card-top"><span className="task-category">產品開發</span><span className="task-due">◷ {task.due}</span></div>
+          <div className="task-card-top"><span className="task-category">任務</span><span className="task-due">◷ {task.due}</span></div>
           <strong>{task.title}</strong>
           <span className="task-card-description">{task.goal}</span>
           <ProgressBar value={agent.progress} />
-          <div className="progress-caption"><span>任務進度</span><strong>{agent.progress}%</strong></div>
+          <div className="progress-caption"><span>進度</span><strong>{agent.progress}%</strong></div>
         </button>
       </PanelSection>
 
-      <PanelSection title="最近工具使用" action="完整紀錄" onAction={onOpenTools}>
+      <PanelSection title="最近工具" action="紀錄" onAction={onOpenTools}>
         <div className="tool-list">
           {agent.tools.slice(0, 3).map((tool, idx) => (
             <button
@@ -1380,17 +1510,17 @@ function AgentPanel({
         </div>
       </PanelSection>
 
-      <PanelSection title="最新輸出" action="查看全部" onAction={onOpenOutput}>
-        <button type="button" className="output-card output-card-clickable" onClick={onOpenOutput}>
+      <PanelSection title="最新對話與產出" action="展開" onAction={onOpenOutput}>
+        <button type="button" className="output-card output-card-clickable adaptive-output-card" onClick={onOpenOutput}>
           <span className="output-quote">“</span>
           <p>{agent.latestOutput}</p>
-          <span className="output-time">點擊展開完整報告與追問 <i>·</i> {agent.name}</span>
         </button>
       </PanelSection>
 
-      <PanelSection title="快速操作（RPG 指令）">
+      <PanelSection title="角色操作">
         <div className="quick-actions">
-          <button type="button" className="quick-chat" onClick={onOpenChat}><span>💬</span> 直接對話</button>
+          <button type="button" className="quick-chat" onClick={onOpenChat}><span>💬</span> 對話</button>
+          <button type="button" onClick={onOpenEditProfile}><span>✎</span> 編輯個人資訊</button>
           <button type="button" onClick={() => onAction("context")}><span>＋</span> 補充資料</button>
           <button type="button" onClick={() => onAction("revision")}><span>↻</span> 要求修改</button>
           <button type="button" className="quick-approve" onClick={onApprove}><span>✓</span> 核准結案</button>
@@ -1398,8 +1528,8 @@ function AgentPanel({
             <span>■</span> {agent.status === "idle" ? "喚醒工作" : "請去休息"}
           </button>
           <button type="button" onClick={onOpenAvatarPicker}><span>🖼️</span> 更換頭像</button>
-          <button type="button" onClick={onOpenSkill} style={{ gridColumn: "1 / -1" }}>
-            <span>📘</span> 查看／編輯專屬 Skill ({skillInfo?.skillName ?? "SKILL.md"})
+          <button type="button" onClick={onOpenSkill}>
+            <span>📘</span> 編輯 Skill
           </button>
         </div>
       </PanelSection>
@@ -1557,11 +1687,11 @@ function ActivityFeed({
   return (
     <section className="activity-feed">
       <div className="feed-heading">
-        <div className="feed-title"><span className="feed-pulse" /><div><h2>全辦公室活動流</h2><p>點擊任一事件可彈出完整紀錄視窗</p></div></div>
+        <div className="feed-title"><span className="feed-pulse" /><h2>活動流</h2></div>
         <div className="feed-filters" role="group" aria-label="活動類型篩選">
           {filters.map((item) => <button type="button" key={item.id} className={filter === item.id ? "filter-active" : ""} onClick={() => onFilter(item.id)}>{item.label}{item.id === "error" && events.some((event) => event.type === "error") && <i />}</button>)}
         </div>
-        <button type="button" className="feed-expand" onClick={onOpenAll}>查看全部活動紀錄 ({events.length}) <span>↗</span></button>
+        <button type="button" className="feed-expand" onClick={onOpenAll}>紀錄 ({events.length}) <span>↗</span></button>
       </div>
       <div className="feed-events">
         {events.length ? events.slice(0, 6).map((event) => {
@@ -1698,6 +1828,10 @@ function GamePopupModal({
   newAgentForm,
   onChangeNewAgentForm,
   onSubmitCreateAgent,
+  editAgentForm,
+  onChangeEditAgentForm,
+  onOpenEditAgent,
+  onSubmitEditAgent,
   onDeleteCustomAgent,
   onUpdateAgentAvatar,
   skillsMap,
@@ -1769,6 +1903,30 @@ function GamePopupModal({
     initialTask: string;
   }) => void;
   onSubmitCreateAgent: () => void;
+  editAgentForm: {
+    id: string;
+    name: string;
+    role: string;
+    avatar: string;
+    zoneId: string;
+    status: AgentStatus;
+    bubble: string;
+    specialty: string;
+    latestOutput: string;
+  };
+  onChangeEditAgentForm: (next: {
+    id: string;
+    name: string;
+    role: string;
+    avatar: string;
+    zoneId: string;
+    status: AgentStatus;
+    bubble: string;
+    specialty: string;
+    latestOutput: string;
+  }) => void;
+  onOpenEditAgent: (agent: Agent) => void;
+  onSubmitEditAgent: () => void;
   onDeleteCustomAgent: (agentId: string) => void;
   onUpdateAgentAvatar: (agentId: string, newAvatar: string) => void;
   skillsMap: Record<string, ColleagueSkillInfo>;
@@ -1782,9 +1940,7 @@ function GamePopupModal({
       case "director":
         return (
           <>
-            <span className="modal-eyebrow">DIRECTOR COMMAND CONSOLE · 總監指令台</span>
-            <h2>🎮 第三方總監全局控制台</h2>
-            <p>你是這間 AI 辦公室的總監。你可以在這裡對全體或指定角色下達戰略指令，或直接調度角色位置。</p>
+            <h2>🎮 總監指令台</h2>
             <div className="rpg-roster">
               {office.agents.map((a) => (
                 <div key={a.id} className="rpg-roster-card">
@@ -1796,19 +1952,20 @@ function GamePopupModal({
                     </div>
                   </div>
                   <div className="rpg-roster-actions">
-                    <button type="button" onClick={() => onRunAgent(a, `請回報你目前針對任務的最新想法與下一步行動。`)}>🧠 立即詢問</button>
-                    <button type="button" onClick={() => onMoveAgent(a, "coding", "work")}>💻 派去工作區</button>
-                    <button type="button" onClick={() => onMoveAgent(a, "idle", "rest")}>☕ 派去休息</button>
+                    <button type="button" onClick={() => onOpenEditAgent(a)}>✎ 個人資訊</button>
+                    <button type="button" onClick={() => onRunAgent(a, `請回報你目前針對任務的最新想法與下一步行動。`)}>🧠 詢問</button>
+                    <button type="button" onClick={() => onMoveAgent(a, "coding", "work")}>💻 工作</button>
+                    <button type="button" onClick={() => onMoveAgent(a, "idle", "rest")}>☕ 休息</button>
                   </div>
                 </div>
               ))}
             </div>
-            <label className="modal-label" htmlFor="director-broadcast">📢 對全辦公室廣播指令（由策劃小橘統籌拆解）</label>
+            <label className="modal-label" htmlFor="director-broadcast">📢 全體廣播指令</label>
             <textarea
               id="director-broadcast"
               value={input}
               onChange={(e) => onInput(e.target.value)}
-              placeholder="例如：今天下午三點前要完成投資儀表板與 AI 辦公室串接，請小橘列出所有人的分工！"
+              placeholder="輸入對團隊的指示…"
               rows={3}
             />
             <div className="modal-actions">
@@ -1821,7 +1978,7 @@ function GamePopupModal({
                   onRunAgent(office.agents[0], `【總監廣播指令】${text}`);
                 }}
               >
-                發送廣播並啟動 AI 推論 <span>→</span>
+                發送廣播 <span>→</span>
               </button>
             </div>
           </>
@@ -1830,15 +1987,14 @@ function GamePopupModal({
       case "summary-active":
         return (
           <>
-            <span className="modal-eyebrow">ACTIVE AGENTS · 工作狀態總覽</span>
-            <h2>✳ 目前正在工作的 AI 同事</h2>
-            <p>點擊任一同事可立即切換視角或指派他執行即時推論：</p>
+            <h2>✳ 工作狀態總覽</h2>
             <div className="popup-list">
               {office.agents.map((a) => (
                 <div key={a.id} className="popup-list-row">
                   <span className="row-with-avatar"><span className="inline-avatar"><AvatarView avatar={a.avatar} role={a.role} /></span> <strong>{a.name}</strong> · {a.role}</span>
                   <span className={`status-pill ${statusClasses[a.status]}`}><i />{statusNames[a.status]}</span>
                   <div className="popup-row-btns">
+                    <button type="button" onClick={() => onOpenEditAgent(a)}>✎ 編輯</button>
                     <button type="button" onClick={() => onSelectAgent(a.id)}>查看</button>
                     <button type="button" onClick={() => onRunAgent(a, "請匯報你手頭工作的即時進度與遇到的難題。")}>⚡ 催進度</button>
                   </div>
@@ -1852,9 +2008,7 @@ function GamePopupModal({
       case "summary-tasks":
         return (
           <>
-            <span className="modal-eyebrow">TASK BOARD · 任務看板總覽</span>
-            <h2>⌁ 所有任務與審核進度</h2>
-            <p>可在此快速檢視或一鍵核准任務：</p>
+            <h2>⌁ 任務看板</h2>
             <div className="popup-list">
               {office.tasks.map((t) => {
                 const owner = office.agents.find((a) => a.id === t.ownerId);
@@ -1864,12 +2018,12 @@ function GamePopupModal({
                       <strong>{t.title}</strong>
                       <div className="popup-sub row-with-avatar">
                         {owner && <span className="inline-avatar"><AvatarView avatar={owner.avatar} role={owner.role} /></span>}
-                        <span>{owner?.name} · 進度 {t.progress}% · {t.status}</span>
+                        <span>{owner?.name} · {t.progress}% · {t.status}</span>
                       </div>
                     </div>
                     <div className="popup-row-btns">
                       <button type="button" onClick={() => onSelectTask(t.id)}>詳情</button>
-                      {owner && <button type="button" onClick={() => onRunAgent(owner, `請針對任務「${t.title}」產出最新交付內容。`, t.goal, t.id)}>🧠 AI 執行</button>}
+                      {owner && <button type="button" onClick={() => onRunAgent(owner, `請針對任務「${t.title}」產出最新交付內容。`, t.goal, t.id)}>🧠 執行</button>}
                     </div>
                   </div>
                 );
@@ -1886,9 +2040,7 @@ function GamePopupModal({
         const blocked = office.agents.filter((a) => a.status === "blocked" || a.status === "error");
         return (
           <>
-            <span className="modal-eyebrow">ATTENTION REQUIRED · 卡關救援中心</span>
-            <h2>⚠️ 需要總監決策的卡關項目</h2>
-            <p>{blocked.length ? "以下同事正在等待你的指示或授權：" : "太棒了！目前沒有任何同事卡關。"}</p>
+            <h2>⚠️ 待確認項目</h2>
             <div className="popup-list">
               {(blocked.length ? blocked : office.agents.slice(0, 2)).map((a) => (
                 <div key={a.id} className="popup-list-row">
@@ -1897,14 +2049,14 @@ function GamePopupModal({
                     <div className="popup-sub">{a.latestOutput}</div>
                   </div>
                   <div className="popup-row-btns">
-                    <button type="button" onClick={() => onRunAgent(a, "總監已授權通過，請繼續完成你的審核與後續方案！")}>✓ 授權並繼續</button>
+                    <button type="button" onClick={() => onRunAgent(a, "總監已授權通過，請繼續完成你的審核與後續方案！")}>✓ 授權繼續</button>
                   </div>
                 </div>
               ))}
             </div>
             <div className="modal-actions">
               <button type="button" className="cancel-button" onClick={onClose}>關閉</button>
-              <button type="button" className="primary-button" onClick={() => { onApprove(); onClose(); }}>一鍵核准目前卡關任務</button>
+              <button type="button" className="primary-button" onClick={() => { onApprove(); onClose(); }}>一鍵核准</button>
             </div>
           </>
         );
@@ -1915,19 +2067,18 @@ function GamePopupModal({
         const zoneAgents = office.agents.filter((a) => a.zoneId === popup.zoneId);
         return (
           <>
-            <span className="modal-eyebrow">ROOM INSPECTOR · 區域編號 {zone?.marker}</span>
-            <h2>🏠 {zone?.name} — {zone?.subtitle}</h2>
-            <p>目前此房間內有 {zoneAgents.length} 位同事。你可以把其他同事調度過來，或直接對房內同事下指令：</p>
+            <h2>🏠 {zone?.marker} {zone?.name} <span className="status-icon-badge"><i className="live-dot" /> {zoneAgents.length} 人</span></h2>
             <div className="popup-list">
               {zoneAgents.length ? zoneAgents.map((a) => (
                 <div key={a.id} className="popup-list-row">
                   <span className="row-with-avatar"><span className="inline-avatar"><AvatarView avatar={a.avatar} role={a.role} /></span> <strong>{a.name}</strong> · {a.bubble}</span>
                   <div className="popup-row-btns">
+                    <button type="button" onClick={() => onOpenEditAgent(a)}>✎ 編輯</button>
                     <button type="button" onClick={() => onSelectAgent(a.id)}>選取</button>
-                    <button type="button" onClick={() => onRunAgent(a, `你在「${zone?.name}」有什麼新發現或進度？`)}>💬 搭話</button>
+                    <button type="button" onClick={() => onRunAgent(a, `你在「${zone?.name}」有什麼新發現或進度？`)}>💬 對話</button>
                   </div>
                 </div>
-              )) : <div className="popup-empty">這個房間目前沒有人。</div>}
+              )) : <div className="popup-empty">目前無人在內</div>}
             </div>
             <div className="modal-label" style={{ marginTop: 12 }}>調度其他同事進入「{zone?.name}」：</div>
             <div className="zone-summon-row">
@@ -1942,13 +2093,13 @@ function GamePopupModal({
                     popup.zoneId,
                   )}
                 >
-                  <span>＋ 召喚</span>
+                  <span>＋</span>
                   <span className="inline-avatar"><AvatarView avatar={a.avatar} role={a.role} /></span>
                   <span>{a.name}</span>
                 </button>
               ))}
             </div>
-            <div className="modal-actions"><button type="button" className="primary-button" onClick={onClose}>關閉視窗</button></div>
+            <div className="modal-actions"><button type="button" className="primary-button" onClick={onClose}>關閉</button></div>
           </>
         );
       }
@@ -1958,18 +2109,36 @@ function GamePopupModal({
         const lastThought = thoughts.find((t) => t.agentId === agent.id);
         return (
           <>
-            <span className="modal-eyebrow">RPG DIALOGUE · 一對一深度對話</span>
-            <h2 className="row-with-avatar"><span className="inline-avatar"><AvatarView avatar={agent.avatar} role={agent.role} /></span> <span>與「{agent.name}」（{agent.role}）對話</span></h2>
-            <div className="rpg-dialogue-box">
-              <div className="rpg-thought-line">💭 內心思考：{lastThought?.thought ?? agent.bubble}</div>
-              <div className="rpg-speech-line">「{agent.latestOutput}」</div>
+            <div className="chat-modal-header">
+              <h2 className="row-with-avatar">
+                <span className="inline-avatar"><AvatarView avatar={agent.avatar} role={agent.role} /></span>
+                <span>{agent.name}（{agent.role}）</span>
+                <span className={`status-pill ${statusClasses[agent.status]}`}><i />{statusNames[agent.status]}</span>
+              </h2>
+              <button type="button" className="secondary-top-button" onClick={() => onOpenEditAgent(agent)}>
+                ✎ 編輯個人資訊
+              </button>
             </div>
-            <label className="modal-label" htmlFor="rpg-chat-input">你想對 {agent.name} 說什麼或交辦什麼？</label>
+            <div className="rpg-dialogue-stage">
+              <div className="rpg-speaker-portrait">
+                <div className="rpg-speaker-avatar">
+                  <AvatarView avatar={agent.avatar} role={agent.role} />
+                </div>
+                <strong>{agent.name}</strong>
+                <span>{agent.role}</span>
+              </div>
+              <div className="rpg-dialogue-bubble-adaptive">
+                <div className="rpg-bubble-pill">💬 {agent.bubble}</div>
+                <div className="rpg-thought-line">💭 {lastThought?.thought ?? "隨時準備回應總監指令"}</div>
+                <div className="rpg-speech-line">{agent.latestOutput}</div>
+              </div>
+            </div>
+            <label className="modal-label" htmlFor="rpg-chat-input">對 {agent.name} 說話或派發指令</label>
             <textarea
               id="rpg-chat-input"
               value={input}
               onChange={(e) => onInput(e.target.value)}
-              placeholder={`直接對 ${agent.name} 下指令，例如：幫我列出 3 個具體改善方案…`}
+              placeholder={`輸入訊息給 ${agent.name}…`}
               rows={3}
               autoFocus
             />
@@ -1979,7 +2148,7 @@ function GamePopupModal({
               ))}
             </div>
             <div className="modal-actions">
-              <button type="button" className="cancel-button" onClick={onClose}>結束對話</button>
+              <button type="button" className="cancel-button" onClick={onClose}>關閉</button>
               <button
                 type="button"
                 className="primary-button"
@@ -1988,7 +2157,177 @@ function GamePopupModal({
                   onRunAgent(agent, q, `先前對話輸出：${agent.latestOutput}`, agent.taskId);
                 }}
               >
-                送出並看 {agent.name} 思考反應 <span>→</span>
+                送出對話 <span>→</span>
+              </button>
+            </div>
+          </>
+        );
+      }
+
+      case "agent-edit": {
+        const target = office.agents.find((a) => a.id === editAgentForm.id) ?? office.agents[0];
+        return (
+          <>
+            <h2>✎ 編輯角色個人資訊（儲存後畫面與 Skill 即時同步）</h2>
+            <div className="zone-summon-row" style={{ marginBottom: 10 }}>
+              {office.agents.map((ag) => (
+                <button
+                  type="button"
+                  key={ag.id}
+                  className={`summon-chip row-with-avatar ${ag.id === editAgentForm.id ? "avatar-cell-active" : ""}`}
+                  onClick={() => onOpenEditAgent(ag)}
+                >
+                  <span className="inline-avatar"><AvatarView avatar={ag.avatar} role={ag.role} /></span>
+                  <span>{ag.name}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="ui-config-grid">
+              <label className="modal-label">
+                1. 角色名稱
+                <input
+                  type="text"
+                  className="ui-field-input"
+                  value={editAgentForm.name}
+                  onChange={(e) => onChangeEditAgentForm({ ...editAgentForm, name: e.target.value })}
+                />
+              </label>
+              <label className="modal-label">
+                2. 職稱與定位
+                <input
+                  type="text"
+                  className="ui-field-input"
+                  value={editAgentForm.role}
+                  onChange={(e) => onChangeEditAgentForm({ ...editAgentForm, role: e.target.value })}
+                />
+              </label>
+
+              <label className="modal-label">
+                3. 角色頭像 (圖示 / 網址 / 上傳圖片)
+                <div className="avatar-input-row">
+                  <span className="avatar-preview-box">
+                    <AvatarView avatar={editAgentForm.avatar || target.avatar} role={editAgentForm.role} />
+                  </span>
+                  <input
+                    type="text"
+                    className="ui-field-input"
+                    placeholder={editAgentForm.avatar.startsWith("data:") ? "已使用上傳圖片" : "Emoji 或圖片網址"}
+                    value={editAgentForm.avatar.startsWith("data:") ? "" : editAgentForm.avatar}
+                    onChange={(e) => onChangeEditAgentForm({ ...editAgentForm, avatar: e.target.value })}
+                  />
+                  <label className="upload-avatar-btn" title="上傳圖片">
+                    📁 上傳
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={{ display: "none" }}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          if (typeof reader.result === "string") {
+                            onChangeEditAgentForm({ ...editAgentForm, avatar: reader.result });
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      }}
+                    />
+                  </label>
+                </div>
+              </label>
+              <label className="modal-label">
+                4. 所在辦公室房間
+                <select
+                  className="ui-field-input"
+                  value={editAgentForm.zoneId}
+                  onChange={(e) => onChangeEditAgentForm({ ...editAgentForm, zoneId: e.target.value })}
+                >
+                  {office.zones.map((z) => (
+                    <option key={z.id} value={z.id}>{z.marker} {z.name}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="modal-label">
+                5. 目前工作狀態
+                <select
+                  className="ui-field-input"
+                  value={editAgentForm.status}
+                  onChange={(e) => onChangeEditAgentForm({ ...editAgentForm, status: e.target.value as AgentStatus })}
+                >
+                  {(Object.keys(statusNames) as AgentStatus[]).map((st) => (
+                    <option key={st} value={st}>{statusNames[st]}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="modal-label">
+                6. 頭頂對話氣泡（對話框會依字數自動伸縮）
+                <input
+                  type="text"
+                  className="ui-field-input"
+                  value={editAgentForm.bubble}
+                  onChange={(e) => onChangeEditAgentForm({ ...editAgentForm, bubble: e.target.value })}
+                />
+              </label>
+            </div>
+
+            <div className="avatar-preset-grid" style={{ marginTop: 6 }}>
+              {AVATAR_PRESETS.map((em) => (
+                <button
+                  type="button"
+                  key={em}
+                  className={`avatar-preset-cell ${editAgentForm.avatar === em ? "avatar-cell-active" : ""}`}
+                  onClick={() => onChangeEditAgentForm({ ...editAgentForm, avatar: em })}
+                >
+                  {em}
+                </button>
+              ))}
+            </div>
+
+            <label className="modal-label" htmlFor="edit-agent-specialty" style={{ marginTop: 8 }}>
+              7. 角色核心專長（同步寫入 SKILL.md）
+            </label>
+            <input
+              id="edit-agent-specialty"
+              type="text"
+              className="ui-field-input"
+              value={editAgentForm.specialty}
+              onChange={(e) => onChangeEditAgentForm({ ...editAgentForm, specialty: e.target.value })}
+              placeholder="輸入此角色的核心專長與工作規範…"
+            />
+
+            <label className="modal-label" htmlFor="edit-agent-output" style={{ marginTop: 8 }}>
+              8. 目前對話／最新產出內容
+            </label>
+            <textarea
+              id="edit-agent-output"
+              value={editAgentForm.latestOutput}
+              onChange={(e) => onChangeEditAgentForm({ ...editAgentForm, latestOutput: e.target.value })}
+              rows={3}
+            />
+
+            <div className="modal-actions">
+              {target.id.startsWith("custom-") && (
+                <button
+                  type="button"
+                  className="secondary-top-button"
+                  onClick={() => onDeleteCustomAgent(target.id)}
+                >
+                  🗑️ 移除此自訂角色
+                </button>
+              )}
+              <button type="button" className="cancel-button" onClick={onClose}>取消</button>
+              <button
+                type="button"
+                className="secondary-top-button"
+                onClick={() => onSelectSkillAgent(target.id)}
+              >
+                📘 開啟 SKILL.md
+              </button>
+              <button type="button" className="primary-button" onClick={onSubmitEditAgent}>
+                ✓ 儲存角色設定（畫面即時生效） <span>→</span>
               </button>
             </div>
           </>
@@ -1999,9 +2338,7 @@ function GamePopupModal({
         const agent = office.agents.find((a) => a.id === popup.agentId) ?? office.agents[0];
         return (
           <>
-            <span className="modal-eyebrow">TOOL EXECUTION LOG · 工具呼叫紀錄</span>
-            <h2 className="row-with-avatar"><span>⌘</span> <span className="inline-avatar"><AvatarView avatar={agent.avatar} role={agent.role} /></span> <span>{agent.name} 的工具與 API 紀錄</span></h2>
-            <p>顯示此角色在辦公室中呼叫過的所有內部工具與 Gemini 模型紀錄：</p>
+            <h2 className="row-with-avatar"><span>⌘</span> <span className="inline-avatar"><AvatarView avatar={agent.avatar} role={agent.role} /></span> <span>{agent.name} 的工具紀錄</span></h2>
             <div className="popup-list">
               {agent.tools.map((tool, i) => (
                 <div key={`${tool.name}-${i}`} className="popup-list-row">
@@ -2013,7 +2350,7 @@ function GamePopupModal({
             <div className="modal-actions">
               <button type="button" className="cancel-button" onClick={onClose}>關閉</button>
               <button type="button" className="primary-button" onClick={() => onRunAgent(agent, "請執行一次全面自我診斷並更新工作摘要。")}>
-                ⚡ 觸發新一次 AI 工具呼叫
+                ⚡ 觸發 AI 工具呼叫
               </button>
             </div>
           </>
@@ -2025,11 +2362,10 @@ function GamePopupModal({
         const lastThought = thoughts.find((t) => t.agentId === agent.id);
         return (
           <>
-            <span className="modal-eyebrow">FULL DELIVERABLE · 完整產出報告</span>
-            <h2 className="row-with-avatar"><span>📄</span> <span className="inline-avatar"><AvatarView avatar={agent.avatar} role={agent.role} /></span> <span>{agent.name} 的最新產出與思考脈絡</span></h2>
+            <h2 className="row-with-avatar"><span>📄</span> <span className="inline-avatar"><AvatarView avatar={agent.avatar} role={agent.role} /></span> <span>{agent.name} 的最新產出</span></h2>
             {lastThought && (
               <div className="rpg-thought-box">
-                <strong>🧠 思考推理過程（{lastThought.model} · {((lastThought.elapsedMs ?? 1200) / 1000).toFixed(1)}s）：</strong>
+                <strong>🧠 {lastThought.model}（{((lastThought.elapsedMs ?? 1200) / 1000).toFixed(1)}s）：</strong>
                 <p>{lastThought.thought}</p>
               </div>
             )}
@@ -2040,10 +2376,10 @@ function GamePopupModal({
                 className="cancel-button"
                 onClick={() => { void navigator.clipboard?.writeText(agent.latestOutput); }}
               >
-                📋 複製報告文字
+                📋 複製文字
               </button>
               <button type="button" className="primary-button" onClick={() => onRunAgent(agent, "請把上面這份產出再擴充得更具體，加入執行檢核表。", agent.latestOutput, agent.taskId)}>
-                🧠 讓 {agent.name} 深入展開 <span>→</span>
+                🧠 深入展開 <span>→</span>
               </button>
             </div>
           </>
@@ -2054,9 +2390,7 @@ function GamePopupModal({
         const agent = selectedAgent ?? office.agents[0];
         return (
           <>
-            <span className="modal-eyebrow">QUICK COMMAND MENU · 進階操作選單</span>
-            <h2>⚙️ 角色與任務快速調度</h2>
-            <p>針對目前選取的「{agent.name}」執行快速狀態切換或 AI 指令：</p>
+            <h2>⚙️ 角色快速調度 — {agent.name}</h2>
             <div className="rpg-quick-prompts" style={{ marginBottom: 14 }}>
               {(["thinking", "researching", "writing", "coding", "reviewing", "blocked", "idle"] as AgentStatus[]).map((st) => (
                 <button type="button" key={st} onClick={() => onMoveAgent(agent, st)}>
@@ -2066,8 +2400,11 @@ function GamePopupModal({
             </div>
             <div className="modal-actions">
               <button type="button" className="cancel-button" onClick={onClose}>取消</button>
+              <button type="button" className="secondary-top-button" onClick={() => onOpenEditAgent(agent)}>
+                ✎ 編輯個人資訊
+              </button>
               <button type="button" className="primary-button" onClick={() => onRunAgent(agent, "請總結你今天的產出並提出一個創新建議。")}>
-                ⚡ 立即呼叫 Gemini
+                ⚡ 呼叫 Gemini
               </button>
             </div>
           </>
@@ -2079,11 +2416,9 @@ function GamePopupModal({
         const owner = office.agents.find((a) => a.id === task.ownerId) ?? office.agents[0];
         return (
           <>
-            <span className="modal-eyebrow">ATTACHMENT MANAGER · 任務附件視窗</span>
-            <h2>▤ {popup.file ? `預覽附件：${popup.file}` : `新增附件至「${task.title}」`}</h2>
+            <h2>▤ {popup.file ? `附件：${popup.file}` : `新增附件至「${task.title}」`}</h2>
             {popup.file ? (
               <>
-                <p>這是任務「{task.title}」的關聯檔案。你可以請負責同事 {owner.name} 直接用 AI 分析這份附件：</p>
                 <div className="rpg-output-full">
                   檔案名稱：{popup.file}{"\n"}
                   所屬任務：{task.title}{"\n"}
@@ -2092,13 +2427,13 @@ function GamePopupModal({
                 <div className="modal-actions">
                   <button type="button" className="cancel-button" onClick={onClose}>關閉</button>
                   <button type="button" className="primary-button" onClick={() => onRunAgent(owner, `請針對附件「${popup.file}」撰寫重點摘要與審核意見。`, task.goal, task.id)}>
-                    🧠 請 {owner.name} 分析此附件
+                    🧠 請 {owner.name} 分析附件
                   </button>
                 </div>
               </>
             ) : (
               <>
-                <label className="modal-label" htmlFor="new-attachment">輸入附件檔名或規格連結</label>
+                <label className="modal-label" htmlFor="new-attachment">附件檔名或規格連結</label>
                 <textarea
                   id="new-attachment"
                   value={input}
@@ -2114,7 +2449,7 @@ function GamePopupModal({
                     className="primary-button"
                     onClick={() => onAddAttachment(task.id, input.trim() || `spec-${Date.now().toString().slice(-4)}.md`)}
                   >
-                    ＋ 加入附件清單
+                    ＋ 加入附件
                   </button>
                 </div>
               </>
@@ -2126,9 +2461,7 @@ function GamePopupModal({
       case "meeting-brainstorm":
         return (
           <>
-            <span className="modal-eyebrow">AI TEAM BRAINSTORM · 全員會議腦力激盪</span>
-            <h2>🧠 召開 AI 團隊即時同步會議</h2>
-            <p>輸入你想討論的議題，Gemini 會模擬小橘、阿研、阿碼、數據、小處的觀點，自動更新會議摘要、分歧與決策：</p>
+            <h2>🧠 召開 AI 團隊腦力激盪</h2>
             <label className="modal-label" htmlFor="meeting-topic">會議討論議題</label>
             <textarea
               id="meeting-topic"
@@ -2145,7 +2478,7 @@ function GamePopupModal({
                 className="primary-button"
                 onClick={() => onRunBrainstorm(input.trim() || "本週產品衝刺與遊戲化互動升級")}
               >
-                開始 AI 腦力激盪 <span>→</span>
+                開始腦力激盪 <span>→</span>
               </button>
             </div>
           </>
@@ -2155,11 +2488,10 @@ function GamePopupModal({
         const chosen = popup.eventId ? office.events.find((e) => e.id === popup.eventId) : undefined;
         return (
           <>
-            <span className="modal-eyebrow">ACTIVITY CHRONICLE · 辦公室完整事件紀錄</span>
-            <h2>📜 {chosen ? chosen.summary : `全辦公室事件日誌（共 ${office.events.length} 筆）`}</h2>
+            <h2>📜 {chosen ? chosen.summary : `事件日誌（${office.events.length} 筆）`}</h2>
             {chosen && (
               <div className="rpg-thought-box" style={{ marginBottom: 12 }}>
-                <strong>時間：{chosen.time} · 類型：{chosen.type}</strong>
+                <strong>{chosen.time} · {chosen.type}</strong>
                 <p style={{ whiteSpace: "pre-wrap" }}>{chosen.detail}</p>
               </div>
             )}
@@ -2191,22 +2523,21 @@ function GamePopupModal({
         if (!rec) return null;
         return (
           <>
-            <span className="modal-eyebrow">THOUGHT INSPECTOR · 思考狀態明細</span>
-            <h2 className="row-with-avatar"><span>🧠</span> <span className="inline-avatar"><AvatarView avatar={rec.avatar} role={rec.role} /></span> <span>{rec.agentName}（{rec.role}）的思考鏈</span></h2>
-            <p>階段：<strong>{rec.stage}</strong> · 模型：<code>{rec.model}</code> · 耗時：{((rec.elapsedMs ?? 1200) / 1000).toFixed(2)} 秒</p>
+            <h2 className="row-with-avatar"><span>🧠</span> <span className="inline-avatar"><AvatarView avatar={rec.avatar} role={rec.role} /></span> <span>{rec.agentName}（{rec.role}）</span></h2>
+            <p><strong>{rec.stage}</strong> · <code>{rec.model}</code> · {((rec.elapsedMs ?? 1200) / 1000).toFixed(2)}s</p>
             <div className="rpg-thought-box">
-              <strong>📥 接收到的指令：</strong>
+              <strong>📥 指令：</strong>
               <p>{rec.prompt}</p>
             </div>
             <div className="rpg-thought-box">
-              <strong>💭 角色內心思考（Thought Process）：</strong>
+              <strong>💭 內心思考：</strong>
               <p>{rec.thought}</p>
             </div>
             <div className="rpg-output-full">{rec.outputPreview || "（推論進行中…）"}</div>
             <div className="modal-actions">
               <button type="button" className="cancel-button" onClick={onClose}>關閉</button>
               <button type="button" className="primary-button" onClick={() => onRunAgent(ag, `請延續你剛才的想法「${rec.thought}」，再往下推演一步具體行動。`)}>
-                🔄 讓他繼續往下思考 <span>→</span>
+                🔄 繼續思考 <span>→</span>
               </button>
             </div>
           </>
@@ -2216,19 +2547,17 @@ function GamePopupModal({
       case "ui-studio":
         return (
           <>
-            <span className="modal-eyebrow">STRUCTURED UI CONFIG · 阿研介面參數設定表</span>
-            <h2>🎨 交由研究員「🧑🏻‍🔬 阿研」更新網站固定介面欄位</h2>
-            <p>直接填寫下方固有欄位並按確認，阿研會立即套用參數並透過 Gemini 進行介面調整與紀錄：</p>
+            <h2>🎨 介面參數設定（研究員「🧑🏻‍🔬 阿研」）</h2>
             {uiPatch?.summary && (
               <div className="rpg-thought-box">
-                <strong>✨ 阿研上次完成的介面更新回報：</strong>
+                <strong>✨ 上次更新：</strong>
                 <p>{uiPatch.summary}</p>
               </div>
             )}
 
             <div className="ui-config-grid">
               <label className="modal-label">
-                1. 網站主標題 (Brand Title)
+                1. 網站主標題
                 <input
                   type="text"
                   className="ui-field-input"
@@ -2237,7 +2566,7 @@ function GamePopupModal({
                 />
               </label>
               <label className="modal-label">
-                2. 總監歡迎大標 (Headline)
+                2. 總監歡迎大標
                 <input
                   type="text"
                   className="ui-field-input"
@@ -2263,7 +2592,7 @@ function GamePopupModal({
                 </div>
               </label>
               <label className="modal-label">
-                4. 面板與卡片底色 (--paper)
+                4. 面板底色 (--paper)
                 <div className="ui-color-row">
                   <input
                     type="color"
@@ -2280,7 +2609,7 @@ function GamePopupModal({
               </label>
 
               <label className="modal-label">
-                5. 邊框與文字主色 (--charcoal)
+                5. 邊框與文字色 (--charcoal)
                 <div className="ui-color-row">
                   <input
                     type="color"
@@ -2296,7 +2625,7 @@ function GamePopupModal({
                 </div>
               </label>
               <label className="modal-label">
-                6. 整體字級倍率 (0.85 ~ 1.35)
+                6. 字級倍率 (0.85 ~ 1.35)
                 <input
                   type="number"
                   step="0.05"
@@ -2309,7 +2638,7 @@ function GamePopupModal({
               </label>
 
               <label className="modal-label">
-                7. 右側資訊欄寬度 (px, 280 ~ 500)
+                7. 右側欄寬度 (px)
                 <input
                   type="number"
                   step="10"
@@ -2321,7 +2650,7 @@ function GamePopupModal({
                 />
               </label>
               <label className="modal-label">
-                8. 卡片與按鈕圓角 (px, 0 ~ 20)
+                8. 圓角 (px)
                 <input
                   type="number"
                   step="1"
@@ -2335,25 +2664,25 @@ function GamePopupModal({
             </div>
 
             <label className="modal-label" htmlFor="ui-evolve-note" style={{ marginTop: 8 }}>
-              9. 給阿研的補充細節指令（選填，阿研會額外生成對應 CSS）
+              9. 補充細節指令（選填）
             </label>
             <textarea
               id="ui-evolve-note"
               value={uiForm.note}
               onChange={(e) => onChangeUiForm({ ...uiForm, note: e.target.value })}
-              placeholder="選填：若有其他特定區塊想微調（例如房間底色、陰影粗細）可填寫於此…"
+              placeholder="選填：輸入想微調的樣式細節…"
               rows={2}
             />
 
             <div className="modal-actions">
-              <button type="button" className="cancel-button" onClick={onResetUi}>↩ 還原預設值</button>
+              <button type="button" className="cancel-button" onClick={onResetUi}>↩ 還原預設</button>
               <button type="button" className="cancel-button" onClick={onClose}>取消</button>
               <button
                 type="button"
                 className="primary-button"
                 onClick={onSubmitUiForm}
               >
-                ✓ 確認送出並由阿研更新介面 <span>→</span>
+                ✓ 套用介面設定 <span>→</span>
               </button>
             </div>
           </>
@@ -2363,13 +2692,10 @@ function GamePopupModal({
         const customAgents = office.agents.filter((a) => a.id.startsWith("custom-"));
         return (
           <>
-            <span className="modal-eyebrow">CHARACTER CREATOR · 建立新 AI 角色固定欄位表</span>
-            <h2>🧑🏻‍🎨 招募新 AI 同事進駐辦公室</h2>
-            <p>填寫下方固有角色設定欄位並確認，新角色會立即出現在你指定的房間，並以該專業身分接上 Gemini：</p>
-
+            <h2>🧑🏻‍🎨 招募新 AI 同事</h2>
             <div className="ui-config-grid">
               <label className="modal-label">
-                1. 角色名稱 (必填，例如：小財)
+                1. 角色名稱
                 <input
                   type="text"
                   className="ui-field-input"
@@ -2380,7 +2706,7 @@ function GamePopupModal({
                 />
               </label>
               <label className="modal-label">
-                2. 職稱與專業定位 (作為 Gemini 人設)
+                2. 職稱與專業定位
                 <input
                   type="text"
                   className="ui-field-input"
@@ -2391,7 +2717,7 @@ function GamePopupModal({
               </label>
 
               <label className="modal-label">
-                3. 角色頭像 (可點選圖示、貼網址或上傳圖片)
+                3. 角色頭像
                 <div className="avatar-input-row">
                   <span className="avatar-preview-box">
                     <AvatarView avatar={newAgentForm.avatar || "🕵🏻‍♂️"} />
@@ -2399,7 +2725,7 @@ function GamePopupModal({
                   <input
                     type="text"
                     className="ui-field-input"
-                    placeholder={newAgentForm.avatar.startsWith("data:") ? "已載入上傳圖片（可輸入 Emoji 或新網址覆蓋）" : "輸入 Emoji 或圖片網址…"}
+                    placeholder={newAgentForm.avatar.startsWith("data:") ? "已載入上傳圖片" : "Emoji 或圖片網址…"}
                     value={newAgentForm.avatar.startsWith("data:") ? "" : newAgentForm.avatar}
                     onChange={(e) => onChangeNewAgentForm({ ...newAgentForm, avatar: e.target.value })}
                   />
@@ -2432,7 +2758,7 @@ function GamePopupModal({
                   onChange={(e) => onChangeNewAgentForm({ ...newAgentForm, zoneId: e.target.value })}
                 >
                   {office.zones.map((z) => (
-                    <option key={z.id} value={z.id}>{z.marker} {z.name}（{z.subtitle}）</option>
+                    <option key={z.id} value={z.id}>{z.marker} {z.name}</option>
                   ))}
                 </select>
               </label>
@@ -2450,7 +2776,7 @@ function GamePopupModal({
                 </select>
               </label>
               <label className="modal-label">
-                6. 頭頂口頭禪氣泡
+                6. 頭頂對話氣泡
                 <input
                   type="text"
                   className="ui-field-input"
@@ -2460,8 +2786,7 @@ function GamePopupModal({
               </label>
             </div>
 
-            <div className="modal-label" style={{ marginTop: 6 }}>點選可快速切換角色圖示：</div>
-            <div className="avatar-preset-grid">
+            <div className="avatar-preset-grid" style={{ marginTop: 6 }}>
               {AVATAR_PRESETS.map((em) => (
                 <button
                   type="button"
@@ -2475,7 +2800,7 @@ function GamePopupModal({
             </div>
 
             <label className="modal-label" htmlFor="new-agent-specialty" style={{ marginTop: 8 }}>
-              7. 角色專屬 Skill 核心專長與規範（將自動寫入 `.agents/skills/office-colleague-.../SKILL.md`）
+              7. 核心專長與規範（自動生成 SKILL.md）
             </label>
             <input
               id="new-agent-specialty"
@@ -2487,7 +2812,7 @@ function GamePopupModal({
             />
 
             <label className="modal-label" htmlFor="new-agent-task" style={{ marginTop: 8 }}>
-              8. 首項交辦任務（選填：若填寫，角色報到後會立即呼叫 Gemini 開始思考產出）
+              8. 首項交辦任務（選填）
             </label>
             <textarea
               id="new-agent-task"
@@ -2499,13 +2824,14 @@ function GamePopupModal({
 
             {customAgents.length > 0 && (
               <div className="popup-list" style={{ marginTop: 10 }}>
-                <div className="modal-label">目前你已招募的自訂角色：</div>
+                <div className="modal-label">已招募的自訂角色：</div>
                 {customAgents.map((ca) => (
                   <div key={ca.id} className="popup-list-row">
                     <span className="row-with-avatar"><span className="inline-avatar"><AvatarView avatar={ca.avatar} role={ca.role} /></span> <strong>{ca.name}</strong> · {ca.role}</span>
                     <div className="popup-row-btns">
+                      <button type="button" onClick={() => onOpenEditAgent(ca)}>✎ 編輯</button>
                       <button type="button" onClick={() => onSelectAgent(ca.id)}>查看</button>
-                      <button type="button" onClick={() => onDeleteCustomAgent(ca.id)}>移除角色</button>
+                      <button type="button" onClick={() => onDeleteCustomAgent(ca.id)}>移除</button>
                     </div>
                   </div>
                 ))}
@@ -2515,7 +2841,7 @@ function GamePopupModal({
             <div className="modal-actions">
               <button type="button" className="cancel-button" onClick={onClose}>取消</button>
               <button type="button" className="primary-button" onClick={onSubmitCreateAgent}>
-                ✓ 確認招募並派駐辦公室 <span>→</span>
+                ✓ 確認招募 <span>→</span>
               </button>
             </div>
           </>
@@ -2527,28 +2853,25 @@ function GamePopupModal({
         const currentAvatar = input || target.avatar;
         return (
           <>
-            <span className="modal-eyebrow">AVATAR CUSTOMIZER · 角色頭像自由更換器</span>
-            <h2>🖼️ 更換「{target.name}（{target.role}）」的頭像</h2>
-            <p>你可以直接點選下方 24 款圖示、輸入任何 Emoji／圖片網址，或從電腦上傳 PNG / JPG / GIF 圖片檔：</p>
-
+            <h2>🖼️ 更換「{target.name}（{target.role}）」頭像</h2>
             <div className="avatar-picker-hero">
               <div className="avatar-preview-large">
                 <AvatarView avatar={currentAvatar} role={target.role} />
               </div>
               <div className="avatar-picker-controls">
                 <label className="modal-label">
-                  直接輸入 Emoji 或圖片網址 (URL)
+                  Emoji 或圖片網址 (URL)
                   <input
                     type="text"
                     className="ui-field-input"
                     value={input.startsWith("data:") ? "" : input}
                     onChange={(e) => onInput(e.target.value)}
-                    placeholder={input.startsWith("data:") ? "已套用上傳圖片（可輸入 Emoji 或新網址替換）" : "輸入 Emoji 或 https://... 圖片網址"}
+                    placeholder={input.startsWith("data:") ? "已套用上傳圖片" : "輸入 Emoji 或 https://... 圖片網址"}
                   />
                 </label>
                 <div className="avatar-upload-row">
                   <label className="upload-avatar-btn upload-avatar-btn-large">
-                    📁 從電腦選擇圖片上傳 (PNG / JPG / GIF / WebP)
+                    📁 從電腦上傳圖片 (PNG / JPG / GIF / WebP)
                     <input
                       type="file"
                       accept="image/*"
@@ -2570,8 +2893,7 @@ function GamePopupModal({
               </div>
             </div>
 
-            <div className="modal-label" style={{ marginTop: 10 }}>快速點選圖示庫：</div>
-            <div className="avatar-preset-grid">
+            <div className="avatar-preset-grid" style={{ marginTop: 10 }}>
               {AVATAR_PRESETS.map((em) => (
                 <button
                   type="button"
@@ -2591,7 +2913,7 @@ function GamePopupModal({
                 className="primary-button"
                 onClick={() => onUpdateAgentAvatar(target.id, (input || target.avatar).trim())}
               >
-                ✓ 確認套用新頭像 <span>→</span>
+                ✓ 套用新頭像 <span>→</span>
               </button>
             </div>
           </>
@@ -2603,9 +2925,12 @@ function GamePopupModal({
         const skill = skillsMap[target.id];
         return (
           <>
-            <span className="modal-eyebrow">ANTIGRAVITY SKILL REGISTRY · 同事專屬技能包管理</span>
-            <h2>📘 {target.name}（{target.role}）的專屬 Skill 檔案</h2>
-            <p>每位既有同事與新招募同事都會自動建置為標準 Antigravity Skill（支援點名 <code>/{target.name}</code> 觸發，並在呼叫 Gemini 時自動掛載）：</p>
+            <div className="chat-modal-header">
+              <h2>📘 {target.name}（{target.role}）— SKILL.md</h2>
+              <button type="button" className="secondary-top-button" onClick={() => onOpenEditAgent(target)}>
+                ✎ 編輯角色個人資訊
+              </button>
+            </div>
 
             <div className="zone-summon-row" style={{ marginBottom: 10 }}>
               {office.agents.map((ag) => (
@@ -2615,28 +2940,19 @@ function GamePopupModal({
                   className={`summon-chip ${ag.id === target.id ? "avatar-cell-active" : ""}`}
                   onClick={() => onSelectSkillAgent(ag.id)}
                 >
-                  <span className="inline-avatar"><AvatarView avatar={ag.avatar} role={ag.role} /></span> {ag.name} ({skillsMap[ag.id]?.skillName ?? "skill"})
+                  <span className="inline-avatar"><AvatarView avatar={ag.avatar} role={ag.role} /></span> {ag.name}
                 </button>
               ))}
             </div>
 
-            {skill?.paths?.length ? (
-              <div className="rpg-thought-box" style={{ marginBottom: 8 }}>
-                <strong>📂 已自動同步寫入的實體 Skill 路徑：</strong>
-                {skill.paths.map((p) => (
-                  <div key={p} style={{ fontFamily: "monospace", fontSize: "8.5px", marginTop: 2 }}>{p}</div>
-                ))}
-              </div>
-            ) : null}
-
             <label className="modal-label" htmlFor="skill-md-editor">
-              SKILL.md 內容（可直接修改並儲存寫回磁碟）：
+              SKILL.md 內容（修改名稱、職稱或專長並儲存，畫面角色資訊也會同步更新）：
             </label>
             <textarea
               id="skill-md-editor"
               value={input}
               onChange={(e) => onInput(e.target.value)}
-              rows={10}
+              rows={11}
               style={{ fontFamily: "Courier New, monospace", fontSize: "9.5px" }}
             />
 
@@ -2662,7 +2978,7 @@ function GamePopupModal({
                 className="primary-button"
                 onClick={() => onSaveSkillMarkdown(target.id, input)}
               >
-                💾 儲存並寫入 SKILL.md <span>→</span>
+                💾 儲存並同步至畫面 <span>→</span>
               </button>
             </div>
           </>
@@ -2672,17 +2988,12 @@ function GamePopupModal({
       case "api-key":
         return (
           <>
-            <span className="modal-eyebrow">GITHUB PAGES & MOBILE DIRECT MODE · 金鑰設定</span>
-            <h2>🔑 手機 / GitHub Pages 直連金鑰設定</h2>
-            <p>
-              當你在電腦關機、使用手機連上 <strong>GitHub Pages</strong> 時，網站會自動切換為「純前端瀏覽器直連模式」。
-              請在下方填入你的 <code>GEMINI_API_KEY</code>，金鑰<strong>只會儲存在你目前手機或瀏覽器的本機儲存空間 (localStorage)</strong>，絕對不會上傳至 GitHub 公開儲存庫！
-            </p>
+            <h2>🔑 Gemini API Key 設定</h2>
             <div className="rpg-thought-box" style={{ marginBottom: 10 }}>
-              <strong>💡 運作狀態：</strong>{" "}
+              <strong>💡 狀態：</strong>{" "}
               {browserApiKey
-                ? `目前已設定瀏覽器金鑰（${browserApiKey.slice(0, 6)}...${browserApiKey.slice(-4)}），手機隨時可直接呼叫 Gemini！`
-                : "尚未設定瀏覽器端金鑰（若在桌機本機執行則會自動使用 app.py 的 .env 金鑰）。"}
+                ? `已設定本機瀏覽器金鑰（${browserApiKey.slice(0, 6)}...${browserApiKey.slice(-4)}）`
+                : "尚未設定瀏覽器端金鑰（僅保存在你的裝置 localStorage，不會公開上傳）。"}
             </div>
             <label className="modal-label" htmlFor="browser-api-key-input">
               Gemini API Key (AIzaSy...)
@@ -2712,7 +3023,7 @@ function GamePopupModal({
                 className="primary-button"
                 onClick={() => onSaveBrowserApiKey(input)}
               >
-                ✓ 儲存金鑰到本機瀏覽器 <span>→</span>
+                ✓ 儲存金鑰 <span>→</span>
               </button>
             </div>
           </>
@@ -2750,18 +3061,16 @@ function ActionModal({
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
   const copy = {
-    assign: { eyebrow: "NEW ASSIGNMENT", title: "派一個新任務", description: "說明希望團隊完成什麼，並選擇負責的 AI 同事。", label: "任務目標", placeholder: "例如：整理本週產品研究重點…" },
-    context: { eyebrow: "ADD CONTEXT", title: "補充工作資料", description: "提供額外背景或資訊，讓同事更好地繼續工作。", label: "補充內容", placeholder: "輸入背景資訊、連結或注意事項…" },
-    revision: { eyebrow: "REQUEST REVISION", title: "要求修改", description: "清楚描述希望調整的方向，這會加入工作活動紀錄。", label: "修改方向", placeholder: "例如：請再確認數據來源並補上限制…" },
+    assign: { title: "派一個新任務", label: "任務目標", placeholder: "例如：整理本週產品研究重點…" },
+    context: { title: "補充工作資料", label: "補充內容", placeholder: "輸入背景資訊、連結或注意事項…" },
+    revision: { title: "要求修改", label: "修改方向", placeholder: "例如：請再確認數據來源並補上限制…" },
   }[kind];
   return (
     <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <form className="action-modal" onSubmit={onSubmit}>
         <button type="button" className="modal-close" onClick={onClose} aria-label="關閉">×</button>
         <div className="modal-icon">{kind === "assign" ? "＋" : kind === "context" ? "▤" : "↻"}</div>
-        <span className="modal-eyebrow">{copy.eyebrow}</span>
         <h2>{copy.title}</h2>
-        <p>{copy.description}</p>
         <label className="modal-label" htmlFor="action-input">{copy.label}</label>
         <textarea id="action-input" value={value} onChange={(event) => onValue(event.target.value)} placeholder={copy.placeholder} rows={3} autoFocus />
         {kind === "assign" && (

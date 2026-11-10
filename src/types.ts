@@ -28,6 +28,7 @@ export interface Agent {
   zoneId: string;
   bubble: string;
   latestOutput: string;
+  specialty?: string;
   tools: ToolRecord[];
 }
 
