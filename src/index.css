@@ -3201,6 +3201,52 @@ button:focus-visible, select:focus-visible, textarea:focus-visible {
   border-color: #ee6c29;
 }
 
+/* PWA App Install Buttons & Badges */
+.install-app-pill-btn {
+  background: var(--orange, #ee6c29);
+  color: #ffffff;
+  border: 1.5px solid var(--charcoal, #282b2b);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 2px 2px 0 var(--charcoal, #282b2b);
+  transition: transform 0.1s, box-shadow 0.1s;
+  white-space: nowrap;
+}
+.install-app-pill-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--charcoal, #282b2b);
+}
+.install-app-pill-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--charcoal, #282b2b);
+}
+
+.install-app-top-btn {
+  background: #fff8eb !important;
+  color: #c05621 !important;
+  border-color: #ee6c29 !important;
+  font-weight: 700 !important;
+}
+.install-app-top-btn:hover {
+  background: #ee6c29 !important;
+  color: #ffffff !important;
+}
+
+.pwa-install-card {
+  border: 2px solid var(--orange, #ee6c29) !important;
+  background: #fff8eb !important;
+}
+.pwa-install-card strong {
+  color: #c05621 !important;
+}
+
+
 
 
 

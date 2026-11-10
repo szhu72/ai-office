@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
 import { officeDataSource } from "./officeDataSource";
 import { askAgent, askMeetingBrainstorm, askUiEvolve, deleteCustomAgentApi, extractProfileFromSkillMarkdown, fetchAgentProfiles, fetchAvatarOverrides, fetchColleagueSkills, fetchCustomAgents, fetchHrRosterMarkdown, fetchSavedUiPatch, getBrowserApiKey, isGifAvatar, isImageAvatar, resetUiEvolve, saveAgentProfileApi, saveAvatarOverrideApi, saveColleagueSkillApi, saveCustomAgentApi, saveHrRosterMarkdownApi, setBrowserApiKey, uploadAvatarFileApi, type ColleagueSkillInfo, type UiEvolutionPatch } from "./aiClient";
 import MascotAvatar from "./MascotAvatar";
@@ -213,6 +213,36 @@ function App() {
   const [skillsMap, setSkillsMap] = useState<Record<string, ColleagueSkillInfo>>({});
   const [hrRosterMd, setHrRosterMd] = useState<string>("");
   const [browserApiKey, setBrowserApiKeyState] = useState<string>(() => getBrowserApiKey());
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    const handleBeforeInstall = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+    const handleAppInstalled = () => {
+      setInstallPrompt(null);
+    };
+    window.addEventListener("beforeinstallprompt", handleBeforeInstall);
+    window.addEventListener("appinstalled", handleAppInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallApp = useCallback(async () => {
+    if (!installPrompt) return;
+    try {
+      await installPrompt.prompt();
+      const choice = await installPrompt.userChoice;
+      if (choice && choice.outcome === "accepted") {
+        setInstallPrompt(null);
+      }
+    } catch (err) {
+      console.warn("PWA install error:", err);
+    }
+  }, [installPrompt]);
 
   // Load saved AI UI patch, custom agents, profile overrides, avatar overrides & generated SKILL.md index on startup
   useEffect(() => {
@@ -1008,10 +1038,30 @@ function App() {
             >
               📢 開會
             </button>
+            {installPrompt && (
+              <button
+                type="button"
+                className="secondary-top-button install-app-top-btn"
+                onClick={handleInstallApp}
+                title="將無所事事辦公室安裝至桌面（獨立 App 模式）"
+              >
+                📲 安裝 App
+              </button>
+            )}
           </div>
           )}
 
           <div className="topbar-compact-actions">
+            {installPrompt && (
+              <button
+                type="button"
+                className="install-app-pill-btn"
+                onClick={handleInstallApp}
+                title="安裝至手機桌面（獨立 App 模式）"
+              >
+                📲 安裝
+              </button>
+            )}
             <button
               type="button"
               className="secondary-top-button mobile-toolbar-trigger"
@@ -1557,6 +1607,8 @@ function App() {
             addEvent("planner", "file", key.trim() ? "已儲存瀏覽器端 Gemini API Key" : "已清除瀏覽器端 Gemini API Key", "GitHub Pages 純前端模式可直接使用此金鑰呼叫 Gemini。");
             setPopup(null);
           }}
+          installPrompt={installPrompt}
+          onInstallApp={handleInstallApp}
         />
       )}
       </div>
@@ -2593,6 +2645,8 @@ function GamePopupModal({
   onSaveHrRosterMd,
   browserApiKey,
   onSaveBrowserApiKey,
+  installPrompt,
+  onInstallApp,
 }: {
   popup: GamePopup;
   office: OfficeState;
@@ -2711,6 +2765,8 @@ function GamePopupModal({
   onSaveHrRosterMd: (mdContent: string) => void;
   browserApiKey: string;
   onSaveBrowserApiKey: (key: string) => void;
+  installPrompt?: any;
+  onInstallApp?: () => void;
 }) {
   const renderBody = () => {
     switch (popup.kind) {
@@ -2720,6 +2776,21 @@ function GamePopupModal({
           <>
             <h2>☰ 辦公室控制工具列（跳出式選單）</h2>
             <div className="toolbar-menu-grid">
+              {installPrompt && (
+                <button
+                  type="button"
+                  className="toolbar-menu-card pwa-install-card"
+                  onClick={() => {
+                    onInstallApp?.();
+                    onClose();
+                  }}
+                >
+                  <span className="toolbar-menu-icon">📲</span>
+                  <strong>安裝手機 App（獨立應用程式）</strong>
+                  <small>以全螢幕獨立視窗新增至桌面，無網址列干擾</small>
+                </button>
+              )}
+
               <button
                 type="button"
                 className={`toolbar-menu-card ${office.mode === "demo" ? "mode-card-demo" : "mode-card-work"}`}
