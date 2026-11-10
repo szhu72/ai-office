@@ -12,6 +12,7 @@ export type OfficeAction =
   | { type: "agent.hydrateProfiles"; profiles: Record<string, Partial<Agent>> }
   | { type: "task.create"; task: OfficeTask; ownerId: string; event: ActivityEvent }
   | { type: "task.approve"; taskId: string; event: ActivityEvent }
+  | { type: "task.finish"; taskId: string; event: ActivityEvent }
   | { type: "task.revise"; taskId?: string; ownerId: string; event: ActivityEvent }
   | { type: "task.toggleStep"; taskId: string; stepIndex: number; event: ActivityEvent }
   | { type: "task.addAttachment"; taskId: string; fileName: string; event: ActivityEvent }
@@ -42,8 +43,8 @@ const zoneByStatus: Record<AgentStatus, string> = {
   writing: "work",
   coding: "work",
   reviewing: "meeting",
-  blocked: "tasks",
-  error: "tasks",
+  blocked: "board",
+  error: "work",
 };
 
 export class LocalOfficeDataSource implements OfficeDataSource {
@@ -59,14 +60,16 @@ export class LocalOfficeDataSource implements OfficeDataSource {
 
   dispatch = (action: OfficeAction): void => {
     switch (action.type) {
-      case "agent.status":
+      case "agent.status": {
+        const rawZone = action.zoneId ?? zoneByStatus[action.status];
+        const safeZone = rawZone === "tasks" ? "work" : rawZone;
         this.snapshot = {
           ...this.snapshot,
           agents: this.snapshot.agents.map((agent) => agent.id === action.agentId
             ? {
                 ...agent,
                 status: action.status,
-                zoneId: action.zoneId ?? zoneByStatus[action.status],
+                zoneId: safeZone,
                 bubble: action.bubble,
                 progress: action.progress ?? agent.progress,
                 tools: action.tool ? [action.tool, ...agent.tools.slice(0, 5)] : agent.tools,
@@ -75,6 +78,7 @@ export class LocalOfficeDataSource implements OfficeDataSource {
           events: [action.event, ...this.snapshot.events],
         };
         break;
+      }
       case "agent.create":
         this.snapshot = {
           ...this.snapshot,
@@ -145,6 +149,20 @@ export class LocalOfficeDataSource implements OfficeDataSource {
             : item),
           agents: this.snapshot.agents.map((agent) => agent.taskId === task?.id
             ? { ...agent, status: "idle", zoneId: "rest", progress: 100, bubble: "✨ 已核准結案！喝杯咖啡" }
+            : agent),
+          events: [action.event, ...this.snapshot.events],
+        };
+        break;
+      }
+      case "task.finish": {
+        const task = this.snapshot.tasks.find((item) => item.id === action.taskId);
+        this.snapshot = {
+          ...this.snapshot,
+          tasks: this.snapshot.tasks.map((item) => item.id === action.taskId
+            ? { ...item, status: "已結束", progress: 100, steps: item.steps.map((s) => ({ ...s, done: true })) }
+            : item),
+          agents: this.snapshot.agents.map((agent) => agent.taskId === task?.id
+            ? { ...agent, status: "idle", zoneId: "rest", progress: 100, bubble: "🏁 任務已順利結束！在休息區待命充電中～" }
             : agent),
           events: [action.event, ...this.snapshot.events],
         };

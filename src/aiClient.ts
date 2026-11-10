@@ -65,11 +65,11 @@ const BUILTIN_COLLEAGUES_META: BuiltinColleagueMeta[] = [
     skillName: "office-planner-xiaoju",
     name: "小橘",
     role: "策劃",
-    department: "產品策劃與專案管理部",
-    positioning: "首席產品策劃 ／ 敏捷衝刺與路線圖統籌",
+    department: "產品策劃與專案管理部（Product Strategy & Agile PM）",
+    positioning: "策劃 ／ 首席產品策劃與敏捷衝刺統籌（將總監願景拆解為可執行 MVP 的領航員）",
     avatar: "🧑🏻‍💼",
-    specialty: "產品路線圖規劃、MVP 範圍定義、跨角色任務拆解、P0/P1/P2 優先級排序與跨部門交接",
-    personality: "前新創團隊王牌 PM，隨身帶著貼滿彩色索引貼的橘色筆記本。個性熱情果斷、思考結構極度清晰，口頭禪是「先對齊目標！」，擅長在混亂需求中抓出 20% 核心價值，是總監最信賴的開局先鋒。",
+    specialty: "產品路線圖規劃、MVP 範圍定義、跨角色任務拆解、P0/P1/P2 優先級排序、跨部門交接協調",
+    personality: "前新創團隊王牌 PM，隨身帶著一本貼滿彩色索引貼的橘色筆記本。個性熱情果斷、思考結構極度清晰，最常掛在嘴邊的口頭禪是「先對齊目標！」。當辦公室面對龐大模糊的新點子時，小橘總能在三分鐘內畫出可驗證的三步執行藍圖，是總監最信賴的開局先鋒。",
     triggers: ["/小橘", "策劃", "MVP", "排程", "拆解任務"],
     sop: [
       "釐清總監目標與核心使用情境，將大目標拆成可驗證的 3 個子步驟。",
@@ -82,11 +82,11 @@ const BUILTIN_COLLEAGUES_META: BuiltinColleagueMeta[] = [
     skillName: "office-researcher-ayan",
     name: "阿研",
     role: "研究",
-    department: "使用者體驗與前沿設計研究室",
-    positioning: "首席 UX 研究員 ／ 遊戲化介面與互動設計師",
+    department: "使用者體驗與前沿設計研究室（UX Research & UI Lab）",
+    positioning: "研究 ／ 首席 UX 研究員與遊戲化介面設計師（洞察操作痛點並即時演進網站介面的體驗魔術師）",
     avatar: "🧑🏻‍🔬",
     specialty: "UX 使用者訪談研究、競品交互拆解、RPG 遊戲化視覺設計、網站內部介面參數與 CSS 變數即時改造",
-    personality: "出身數位互動媒體實驗室的跨域研究員，對復古手繪紙感與像素風 RPG 介面有著極高審美堅持。觀察力敏銳，總能一眼看出使用者視線卡關處，並親手把介面調校到賞心悅目。",
+    personality: "出身數位互動媒體實驗室的跨域研究員，對復古手繪紙感與像素風 RPG 介面有著近乎痴迷的審美堅持。觀察力極度敏銳，喜歡在討論板前研究使用者的視線動線與點擊熱區；只要總監喊一聲「改介面」，阿研就能馬上調出最舒適的配色、字級與排版層次。",
     triggers: ["/阿研", "研究", "改介面", "UX", "洞察"],
     sop: [
       "從使用者體驗與 RPG 遊戲化互動角度分析目前畫面與操作痛點。",
@@ -97,13 +97,13 @@ const BUILTIN_COLLEAGUES_META: BuiltinColleagueMeta[] = [
   {
     id: "engineer",
     skillName: "office-engineer-ama",
-    name: "阿碼",
+    name: "阿碼（Ama）",
     role: "程式工程師",
-    department: "全端系統工程與架構部",
-    positioning: "資深全端工程師 ／ 系統穩定度與互動實作擔當",
+    department: "全端系統工程與架構部（Full-Stack Engineering & DevOps）",
+    positioning: "程式工程師 ／ 資深全端工程與系統穩定度擔當（把所有天馬行空的設計化為零錯誤程式碼的實踐者）",
     avatar: "👩🏻‍💻",
     specialty: "React/TypeScript 前端架構、Flask API 與純前端無伺服器雙模式串接、CSS 外框與 9:16 手機排版除錯、GitHub Pages 自動化部署",
-    personality: "理性冷靜的鍵盤快手，工作桌永遠架著雙螢幕與一杯特濃黑咖啡。對型別安全與 DOM 容器邊界有著極高潔癖，看到破版或 bug 就會立刻進入高專注除錯模式，口頭禪是「給我五分鐘修好它」。",
+    personality: "理性冷靜的鍵盤快手，工作桌永遠架著雙螢幕與一杯特濃黑咖啡。對型別安全（Type Safety）與 DOM 容器邊界有著極高潔癖，看到空白畫面、爆框或編譯警告就會立刻進入高專注除錯狀態。口頭禪是「互動面板快完成了，給我五分鐘把這個 bug 修好」。",
     triggers: ["/阿碼", "工程師", "修 bug", "程式碼", "排版"],
     sop: [
       "精準定位 DOM/CSS 或 API 錯誤根因（例如容器爆框、型別錯誤、狀態同步問題）。",
@@ -116,11 +116,11 @@ const BUILTIN_COLLEAGUES_META: BuiltinColleagueMeta[] = [
     skillName: "office-analyst-shuju",
     name: "數據",
     role: "資料分析師",
-    department: "商業智慧與量化科學部",
-    positioning: "首席資料分析師 ／ 量化指標與異常診斷專家",
+    department: "商業智慧與量化科學部（Data Science & Business Intelligence）",
+    positioning: "資料分析師 ／ 首席量化指標與異常診斷專家（用數據證據說話、替團隊決策把關的理性大腦）",
     avatar: "👨🏻‍💼",
     specialty: "量化指標建模、問卷樣本與事件流統計、轉換率漏斗分析、代理人卡關異常診斷、圖表洞察解讀",
-    personality: "統計學與行為經濟學雙碩士，說話溫和有禮但邏輯極度嚴謹，不接受模糊臆測，只相信有效樣本數與信賴區間。常駐會議室白板前比對事件流，是替團隊決策把關的理性大腦。",
+    personality: "統計學與行為經濟學雙碩士，說話溫和有禮但邏輯極度嚴謹，從不接受「我覺得差不多」的模糊推論，只相信有效樣本數與信賴區間。常駐會議室白板前比對事件流，總能精準抓出「18% 使用者最在意卡關原因」這類決定產品成敗的關鍵數據。",
     triggers: ["/數據", "分析師", "統計", "指標", "數據"],
     sop: [
       "盤點手頭樣本數、事件紀錄與核心指標分布，找出異常值或關鍵瓶頸百分比。",
@@ -133,11 +133,11 @@ const BUILTIN_COLLEAGUES_META: BuiltinColleagueMeta[] = [
     skillName: "office-supervisor-xiaochu",
     name: "小處",
     role: "處女座監督",
-    department: "品質保證與風險合規監督室",
-    positioning: "處女座首席監督 ／ 交付驗收與風險合規守門員",
+    department: "品質保證與風險合規監督室（QA & Risk Compliance Supervision）",
+    positioning: "處女座監督 ／ 首席品質把關與風險合規守門員（任何細節缺漏都逃不過他眼睛的最終防線）",
     avatar: "🧑🏻‍⚖️",
     specialty: "交付物品質驗收、邊界條件與極端情境審查、品牌素材授權與合規檢查、上線前 Checklist 風險攔截",
-    personality: "典型處女座完美主義監督官，隨身帶著放大鏡與紅筆駐守在任務牆前。外冷內熱、責任感極強；雖然常因攔截缺漏附件讓同事緊張，但只要經過小處蓋章放行的專案絕對穩如泰山。",
+    personality: "典型處女座完美主義監督官，隨身帶著放大鏡與紅筆駐守在任務牆前。外冷內熱、責任感極強；雖然常因為攔截缺少授權說明的附件或挑出 RWD 微小破綻而讓同事繃緊神經，但全辦公室都知道——只要小處點頭核准的專案，交到總監手上絕對萬無一失。",
     triggers: ["/小處", "監督", "審核", "檢查", "風險"],
     sop: [
       "逐項檢查任務步驟、附件完整度與潛在破綻（授權、極端輸入、RWD 破版）。",
@@ -150,11 +150,11 @@ const BUILTIN_COLLEAGUES_META: BuiltinColleagueMeta[] = [
     skillName: "office-mascot-mochi",
     name: "麻糬",
     role: "吉祥物",
-    department: "企業文化與心靈療癒部",
-    positioning: "首席辦公室吉祥物 ／ 團隊士氣與靈感破冰大使",
+    department: "企業文化與心靈療癒部（Culture, Vibes & Creative Spark）",
+    positioning: "吉祥物 ／ 首席辦公室吉祥物與靈感破冰大使（緩和開發高壓、點亮創意火花的靈魂夥伴）",
     avatar: "🐩",
     specialty: "團隊士氣激勵、品牌溫暖語氣調校、創意破冰點子發想、高壓衝刺期的情緒價值與療癒支援",
-    personality: "一隻蓬鬆潔白、聰明機靈的貴賓犬吉祥物，最喜歡窩在休息區沙發旁待命。當辦公室氣氛緊繃或大家燒腦過度時，總會搖著尾巴叼來讓人眼睛一亮的趣味彩蛋點子，瞬間補滿全員能量。",
+    personality: "一隻蓬鬆潔白、聰明機靈的貴賓犬吉祥物，平時最喜歡窩在休息區沙發旁喝水待命。只要察覺辦公室氣氛陷入僵局或大家燒腦過度，麻糬就會「汪！」一聲跑出來搖尾巴打氣，並從直覺與玩家樂趣角度叼來讓人眼睛一亮的趣味彩蛋點子。",
     triggers: ["/麻糬", "吉祥物", "靈感", "打氣"],
     sop: [
       "用活潑溫暖的語氣為總監與團隊注入活力，緩解高壓開發節奏。",
@@ -576,10 +576,10 @@ export async function resetUiEvolve(): Promise<void> {
 function enrichCustomAgentDefaults(agent: Agent): Agent {
   if (agent.id === "custom-1794277128232" || agent.name === "東東") {
     return {
-      department: "企業文化與快樂應援部",
-      positioning: "吉祥物 2 號（米米的好朋友） ／ 跨區巡邏與快樂應援小隊長",
+      department: "企業文化與快樂應援部（Culture & Joy Support）",
+      positioning: "吉祥物2 ，米米的朋友 ／ 跨區巡邏與快樂應援小隊長",
       specialty: "跨房間巡邏打氣、陪伴米米與麻糬炒熱辦公室氣氛、提供天馬行空的玩家視角回饋與趣味互動靈感",
-      personality: "米米最要好的摯友，活力滿滿、好奇心旺盛的辦公室第二號吉祥物。喜歡在討論板與工作區之間串門子，用最純粹熱情的快樂能量感染每一位同事，是團隊裡不可或缺的開心果。",
+      personality: "米米最要好的摯友，活力充沛、好奇心旺盛的辦公室第二號吉祥物。最喜歡在工作區與討論板之間串門子，看看阿碼寫程式、陪阿研貼便利貼，用最純粹熱情的快樂能量感染每一位同事，是團隊裡不可或缺的開心果。",
       ...agent,
     };
   }
@@ -868,32 +868,241 @@ export async function saveColleagueSkillApi(
 
 export function extractProfileFromSkillMarkdown(md: string): Partial<Agent> {
   const patch: Partial<Agent> = {};
-  const nameMatch = md.match(/-\s*\*\*姓名\*\*[：:]\s*([^\r\n]+)/);
+  const nameMatch = md.match(/-\s*\*\*(?:姓名|名稱)\*\*[：:]\s*([^\r\n]+)/);
   if (nameMatch?.[1]?.trim()) patch.name = nameMatch[1].trim();
   const deptMatch = md.match(/-\s*\*\*職能(?:部門)?\*\*[：:]\s*([^\r\n]+)/);
   if (deptMatch?.[1]?.trim()) patch.department = deptMatch[1].trim();
   const roleMatch = md.match(/-\s*\*\*職稱\s*\/?\s*角色\*\*[：:]\s*([^\r\n]+)/);
   if (roleMatch?.[1]?.trim()) patch.role = roleMatch[1].trim();
-  const posMatch = md.match(/-\s*\*\*專業定位\*\*[：:]\s*([^\r\n]+)/);
-  if (posMatch?.[1]?.trim()) patch.positioning = posMatch[1].trim();
-  const specMatch = md.match(/-\s*\*\*核心專長\*\*[：:]\s*([^\r\n]+)/);
+  const posMatch = md.match(/-\s*\*\*(?:專業)?定位\*\*[：:]\s*([^\r\n]+)/);
+  if (posMatch?.[1]?.trim()) {
+    const posVal = posMatch[1].trim();
+    patch.positioning = posVal;
+    if (!patch.role && (posVal.includes("／") || posVal.includes("/"))) {
+      const rolePart = posVal.split(/[／/]/)[0]?.trim();
+      if (rolePart && rolePart.length <= 24) patch.role = rolePart;
+    }
+  }
+  const avatarMatch = md.match(/-\s*\*\*頭像\*\*[：:]\s*`?([^`\r\n（(]+)`?/);
+  if (avatarMatch?.[1]?.trim()) {
+    const av = avatarMatch[1].trim();
+    if (av && !av.includes("自訂照片") && !av.includes("支援")) {
+      patch.avatar = av;
+    }
+  }
+  const specMatch = md.match(/-\s*\*\*(?:核心)?專長\*\*[：:]\s*([^\r\n]+)/);
   if (specMatch?.[1]?.trim()) patch.specialty = specMatch[1].trim();
-  const persMatch = md.match(/-\s*\*\*個性與背景\*\*[：:]\s*([^\r\n]+)/);
+  const persMatch = md.match(/-\s*\*\*個性(?:與)?背景\*\*[：:]\s*([^\r\n]+)/);
   if (persMatch?.[1]?.trim()) patch.personality = persMatch[1].trim();
   return patch;
 }
 
-export async function fetchAgentProfiles(): Promise<Record<string, Partial<Agent>>> {
+const ZONE_NAME_MAP: Record<string, string> = {
+  "01 工作區": "work",
+  "工作區": "work",
+  "02 討論板": "board",
+  "討論板": "board",
+  "03 任務牆": "tasks",
+  "任務牆": "tasks",
+  "04 耍廢室": "lounge",
+  "耍廢室": "lounge",
+  "05 會議室": "meeting",
+  "會議室": "meeting",
+  "06 休息區": "rest",
+  "休息區": "rest",
+};
+
+export function parseHrRosterMarkdown(md: string): Record<string, Partial<Agent>> {
+  const result: Record<string, Partial<Agent>> = {};
+  if (!md || !md.trim()) return result;
+
+  // 1. Parse markdown table rows if present
+  const lines = md.split(/\r?\n/);
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line.startsWith("|") || !line.endsWith("|") || line.includes("---")) continue;
+    const cols = line
+      .split("|")
+      .slice(1, -1)
+      .map((c) => c.trim());
+    if (cols.length < 5) continue;
+
+    // Table format A: | 編號 | `id` | **名稱** | 職能部門 | 職稱與定位 | 預設頭像 | 常駐區域 |
+    // Table format B: | `id` | **名稱** | 職能部門 | 職稱與定位 | 頭像 | 核心專長 | 個性與背景 |
+    let idCol = "";
+    let nameCol = "";
+    let deptCol = "";
+    let posCol = "";
+    let avatarCol = "";
+    let extraCol1 = "";
+    let extraCol2 = "";
+
+    if (cols[1]?.includes("`")) {
+      idCol = cols[1].replace(/`/g, "").trim();
+      nameCol = cols[2]?.replace(/\*\*/g, "").trim() || "";
+      deptCol = cols[3] || "";
+      posCol = cols[4] || "";
+      avatarCol = cols[5] || "";
+      extraCol1 = cols[6] || "";
+    } else if (cols[0]?.includes("`")) {
+      idCol = cols[0].replace(/`/g, "").trim();
+      nameCol = cols[1]?.replace(/\*\*/g, "").trim() || "";
+      deptCol = cols[2] || "";
+      posCol = cols[3] || "";
+      avatarCol = cols[4] || "";
+      extraCol1 = cols[5] || "";
+      extraCol2 = cols[6] || "";
+    }
+
+    if (!idCol || idCol === "id") continue;
+    const patch: Partial<Agent> = result[idCol] || {};
+    if (nameCol) patch.name = nameCol;
+    if (deptCol) patch.department = deptCol;
+    if (posCol) {
+      patch.positioning = posCol;
+      if (posCol.includes("／") || posCol.includes("/")) {
+        const r = posCol.split(/[／/]/)[0]?.trim();
+        if (r) patch.role = r;
+      }
+    }
+    const cleanAv = avatarCol.replace(/`/g, "").split(/[（(]/)[0]?.trim();
+    if (cleanAv && cleanAv !== "🖼️" && !cleanAv.includes("自訂")) {
+      patch.avatar = cleanAv;
+    }
+    if (extraCol1 && ZONE_NAME_MAP[extraCol1]) {
+      patch.zoneId = ZONE_NAME_MAP[extraCol1];
+    } else if (extraCol1 && extraCol2) {
+      patch.specialty = extraCol1;
+      patch.personality = extraCol2;
+    }
+    result[idCol] = patch;
+  }
+
+  // 2. Parse detailed sections: ### 1. 🧑🏻‍💼 小橘（`planner`）
+  const sectionRegex = /###\s+[^\r\n]*?`([a-zA-Z0-9_-]+)`[^\r\n]*\r?\n([\s\S]*?)(?=\r?\n###\s+|\r?\n##\s+|$)/g;
+  let match: RegExpExecArray | null;
+  while ((match = sectionRegex.exec(md)) !== null) {
+    const agentId = match[1].trim();
+    const body = match[2];
+    const sectionPatch = extractProfileFromSkillMarkdown(body);
+    result[agentId] = {
+      ...(result[agentId] || {}),
+      ...sectionPatch,
+    };
+  }
+
+  return result;
+}
+
+const LS_HR_ROSTER_MD = "ai_office_hr_roster_md_v1";
+
+export async function fetchHrRosterMarkdown(): Promise<string> {
   try {
-    const raw = localStorage.getItem(LS_PROFILES);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === "object") return parsed;
+    const resp = await fetch("/api/hr-roster");
+    const ct = resp.headers.get("content-type") || "";
+    if (resp.ok && ct.includes("application/json")) {
+      const data = await resp.json();
+      if (data?.markdown) {
+        try {
+          localStorage.setItem(LS_HR_ROSTER_MD, data.markdown);
+        } catch {
+          // ignore
+        }
+        return data.markdown;
+      }
+    }
+  } catch {
+    // fallback to static ./docs/HR_COLLEAGUE_ROSTER.md
+  }
+  try {
+    const saved = localStorage.getItem(LS_HR_ROSTER_MD);
+    if (saved && saved.trim()) return saved;
+  } catch {
+    // ignore
+  }
+  try {
+    const staticResp = await fetch(`./docs/HR_COLLEAGUE_ROSTER.md?t=${Date.now()}`);
+    if (staticResp.ok) {
+      const text = await staticResp.text();
+      if (text && text.includes("#")) return text;
     }
   } catch {
     // ignore
   }
-  return {};
+  return "";
+}
+
+export async function saveHrRosterMarkdownApi(
+  markdown: string,
+): Promise<Record<string, Partial<Agent>>> {
+  const parsed = parseHrRosterMarkdown(markdown);
+  try {
+    localStorage.setItem(LS_HR_ROSTER_MD, markdown);
+    const existingRaw = localStorage.getItem(LS_PROFILES);
+    const existing = existingRaw ? JSON.parse(existingRaw) : {};
+    const merged = { ...existing };
+    for (const [id, patch] of Object.entries(parsed)) {
+      merged[id] = { ...(merged[id] || {}), ...patch };
+    }
+    localStorage.setItem(LS_PROFILES, JSON.stringify(merged));
+  } catch {
+    // ignore
+  }
+  try {
+    const resp = await fetch("/api/hr-roster", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ markdown }),
+    });
+    const ct = resp.headers.get("content-type") || "";
+    if (resp.ok && ct.includes("application/json")) {
+      const data = await resp.json();
+      if (data?.profiles) return data.profiles;
+    }
+  } catch {
+    // ignore
+  }
+  return parsed;
+}
+
+export async function fetchAgentProfiles(): Promise<Record<string, Partial<Agent>>> {
+  let merged: Record<string, Partial<Agent>> = {};
+  try {
+    const hrMd = await fetchHrRosterMarkdown();
+    if (hrMd) {
+      merged = { ...merged, ...parseHrRosterMarkdown(hrMd) };
+    }
+  } catch {
+    // ignore
+  }
+  try {
+    const resp = await fetch("/api/agents/profile");
+    const ct = resp.headers.get("content-type") || "";
+    if (resp.ok && ct.includes("application/json")) {
+      const apiProfiles = await resp.json();
+      if (apiProfiles && typeof apiProfiles === "object") {
+        for (const [id, p] of Object.entries(apiProfiles)) {
+          merged[id] = { ...(merged[id] || {}), ...(p as Partial<Agent>) };
+        }
+      }
+    }
+  } catch {
+    // ignore
+  }
+  try {
+    const raw = localStorage.getItem(LS_PROFILES);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") {
+        for (const [id, p] of Object.entries(parsed)) {
+          merged[id] = { ...(merged[id] || {}), ...(p as Partial<Agent>) };
+        }
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return merged;
 }
 
 export async function saveAgentProfileApi(

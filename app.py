@@ -38,11 +38,11 @@ BUILTIN_COLLEAGUES = [
         "skillName": "office-planner-xiaoju",
         "name": "小橘",
         "role": "策劃",
-        "department": "產品策劃與專案管理部",
-        "positioning": "首席產品策劃 ／ 敏捷衝刺與路線圖統籌",
+        "department": "產品策劃與專案管理部（Product Strategy & Agile PM）",
+        "positioning": "策劃 ／ 首席產品策劃與敏捷衝刺統籌（將總監願景拆解為可執行 MVP 的領航員）",
         "avatar": "🧑🏻‍💼",
-        "specialty": "產品路線圖規劃、MVP 範圍定義、跨角色任務拆解、P0/P1/P2 優先級排序與跨部門交接",
-        "personality": "前新創團隊王牌 PM，隨身帶著貼滿彩色索引貼的橘色筆記本。個性熱情果斷、思考結構極度清晰，口頭禪是「先對齊目標！」，擅長在混亂需求中抓出 20% 核心價值，是總監最信賴的開局先鋒。",
+        "specialty": "產品路線圖規劃、MVP 範圍定義、跨角色任務拆解、P0/P1/P2 優先級排序、跨部門交接協調",
+        "personality": "前新創團隊王牌 PM，隨身帶著一本貼滿彩色索引貼的橘色筆記本。個性熱情果斷、思考結構極度清晰，最常掛在嘴邊的口頭禪是「先對齊目標！」。當辦公室面對龐大模糊的新點子時，小橘總能在三分鐘內畫出可驗證的三步執行藍圖，是總監最信賴的開局先鋒。",
         "triggers": ["/小橘", "策劃", "MVP", "排程", "拆解任務"],
         "sop": [
             "釐清總監目標與核心使用情境，將大目標拆成可驗證的 3 個子步驟。",
@@ -55,11 +55,11 @@ BUILTIN_COLLEAGUES = [
         "skillName": "office-researcher-ayan",
         "name": "阿研",
         "role": "研究",
-        "department": "使用者體驗與前沿設計研究室",
-        "positioning": "首席 UX 研究員 ／ 遊戲化介面與互動設計師",
+        "department": "使用者體驗與前沿設計研究室（UX Research & UI Lab）",
+        "positioning": "研究 ／ 首席 UX 研究員與遊戲化介面設計師（洞察操作痛點並即時演進網站介面的體驗魔術師）",
         "avatar": "🧑🏻‍🔬",
         "specialty": "UX 使用者訪談研究、競品交互拆解、RPG 遊戲化視覺設計、網站內部介面參數與 CSS 變數即時改造",
-        "personality": "出身數位互動媒體實驗室的跨域研究員，對復古手繪紙感與像素風 RPG 介面有著極高審美堅持。觀察力敏銳，總能一眼看出使用者視線卡關處，並親手把介面調校到賞心悅目。",
+        "personality": "出身數位互動媒體實驗室的跨域研究員，對復古手繪紙感與像素風 RPG 介面有著近乎痴迷的審美堅持。觀察力極度敏銳，喜歡在討論板前研究使用者的視線動線與點擊熱區；只要總監喊一聲「改介面」，阿研就能馬上調出最舒適的配色、字級與排版層次。",
         "triggers": ["/阿研", "研究", "改介面", "UX", "洞察"],
         "sop": [
             "從使用者體驗與 RPG 遊戲化互動角度分析目前畫面與操作痛點。",
@@ -70,13 +70,13 @@ BUILTIN_COLLEAGUES = [
     {
         "id": "engineer",
         "skillName": "office-engineer-ama",
-        "name": "阿碼",
+        "name": "阿碼（Ama）",
         "role": "程式工程師",
-        "department": "全端系統工程與架構部",
-        "positioning": "資深全端工程師 ／ 系統穩定度與互動實作擔當",
+        "department": "全端系統工程與架構部（Full-Stack Engineering & DevOps）",
+        "positioning": "程式工程師 ／ 資深全端工程與系統穩定度擔當（把所有天馬行空的設計化為零錯誤程式碼的實踐者）",
         "avatar": "👩🏻‍💻",
         "specialty": "React/TypeScript 前端架構、Flask API 與純前端無伺服器雙模式串接、CSS 外框與 9:16 手機排版除錯、GitHub Pages 自動化部署",
-        "personality": "理性冷靜的鍵盤快手，工作桌永遠架著雙螢幕與一杯特濃黑咖啡。對型別安全與 DOM 容器邊界有著極高潔癖，看到破版或 bug 就會立刻進入高專注除錯模式，口頭禪是「給我五分鐘修好它」。",
+        "personality": "理性冷靜的鍵盤快手，工作桌永遠架著雙螢幕與一杯特濃黑咖啡。對型別安全（Type Safety）與 DOM 容器邊界有著極高潔癖，看到空白畫面、爆框或編譯警告就會立刻進入高專注除錯狀態。口頭禪是「互動面板快完成了，給我五分鐘把這個 bug 修好」。",
         "triggers": ["/阿碼", "工程師", "修 bug", "程式碼", "排版"],
         "sop": [
             "精準定位 DOM/CSS 或 API 錯誤根因（例如容器爆框、型別錯誤、狀態同步問題）。",
@@ -89,11 +89,11 @@ BUILTIN_COLLEAGUES = [
         "skillName": "office-analyst-shuju",
         "name": "數據",
         "role": "資料分析師",
-        "department": "商業智慧與量化科學部",
-        "positioning": "首席資料分析師 ／ 量化指標與異常診斷專家",
+        "department": "商業智慧與量化科學部（Data Science & Business Intelligence）",
+        "positioning": "資料分析師 ／ 首席量化指標與異常診斷專家（用數據證據說話、替團隊決策把關的理性大腦）",
         "avatar": "👨🏻‍💼",
         "specialty": "量化指標建模、問卷樣本與事件流統計、轉換率漏斗分析、代理人卡關異常診斷、圖表洞察解讀",
-        "personality": "統計學與行為經濟學雙碩士，說話溫和有禮但邏輯極度嚴謹，不接受模糊臆測，只相信有效樣本數與信賴區間。常駐會議室白板前比對事件流，是替團隊決策把關的理性大腦。",
+        "personality": "統計學與行為經濟學雙碩士，說話溫和有禮但邏輯極度嚴謹，從不接受「我覺得差不多」的模糊推論，只相信有效樣本數與信賴區間。常駐會議室白板前比對事件流，總能精準抓出「18% 使用者最在意卡關原因」這類決定產品成敗的關鍵數據。",
         "triggers": ["/數據", "分析師", "統計", "指標", "數據"],
         "sop": [
             "盤點手頭樣本數、事件紀錄與核心指標分布，找出異常值或關鍵瓶頸百分比。",
@@ -106,11 +106,11 @@ BUILTIN_COLLEAGUES = [
         "skillName": "office-supervisor-xiaochu",
         "name": "小處",
         "role": "處女座監督",
-        "department": "品質保證與風險合規監督室",
-        "positioning": "處女座首席監督 ／ 交付驗收與風險合規守門員",
+        "department": "品質保證與風險合規監督室（QA & Risk Compliance Supervision）",
+        "positioning": "處女座監督 ／ 首席品質把關與風險合規守門員（任何細節缺漏都逃不過他眼睛的最終防線）",
         "avatar": "🧑🏻‍⚖️",
         "specialty": "交付物品質驗收、邊界條件與極端情境審查、品牌素材授權與合規檢查、上線前 Checklist 風險攔截",
-        "personality": "典型處女座完美主義監督官，隨身帶著放大鏡與紅筆駐守在任務牆前。外冷內熱、責任感極強；雖然常因攔截缺漏附件讓同事緊張，但只要經過小處蓋章放行的專案絕對穩如泰山。",
+        "personality": "典型處女座完美主義監督官，隨身帶著放大鏡與紅筆駐守在任務牆前。外冷內熱、責任感極強；雖然常因為攔截缺少授權說明的附件或挑出 RWD 微小破綻而讓同事繃緊神經，但全辦公室都知道——只要小處點頭核准的專案，交到總監手上絕對萬無一失。",
         "triggers": ["/小處", "監督", "審核", "檢查", "風險"],
         "sop": [
             "逐項檢查任務步驟、附件完整度與潛在破綻（授權、極端輸入、RWD 破版）。",
@@ -123,11 +123,11 @@ BUILTIN_COLLEAGUES = [
         "skillName": "office-mascot-mochi",
         "name": "麻糬",
         "role": "吉祥物",
-        "department": "企業文化與心靈療癒部",
-        "positioning": "首席辦公室吉祥物 ／ 團隊士氣與靈感破冰大使",
+        "department": "企業文化與心靈療癒部（Culture, Vibes & Creative Spark）",
+        "positioning": "吉祥物 ／ 首席辦公室吉祥物與靈感破冰大使（緩和開發高壓、點亮創意火花的靈魂夥伴）",
         "avatar": "🐩",
         "specialty": "團隊士氣激勵、品牌溫暖語氣調校、創意破冰點子發想、高壓衝刺期的情緒價值與療癒支援",
-        "personality": "一隻蓬鬆潔白、聰明機靈的貴賓犬吉祥物，最喜歡窩在休息區沙發旁待命。當辦公室氣氛緊繃或大家燒腦過度時，總會搖著尾巴叼來讓人眼睛一亮的趣味彩蛋點子，瞬間補滿全員能量。",
+        "personality": "一隻蓬鬆潔白、聰明機靈的貴賓犬吉祥物，平時最喜歡窩在休息區沙發旁喝水待命。只要察覺辦公室氣氛陷入僵局或大家燒腦過度，麻糬就會「汪！」一聲跑出來搖尾巴打氣，並從直覺與玩家樂趣角度叼來讓人眼睛一亮的趣味彩蛋點子。",
         "triggers": ["/麻糬", "吉祥物", "靈感", "打氣"],
         "sop": [
             "用活潑溫暖的語氣為總監與團隊注入活力，緩解高壓開發節奏。",
@@ -241,7 +241,209 @@ def remove_colleague_skill_files(agent_id: str) -> None:
             shutil.rmtree(skill_dir, ignore_errors=True)
 
 
+ZONE_NAME_MAP = {
+    "01 工作區": "work",
+    "工作區": "work",
+    "02 討論板": "board",
+    "討論板": "board",
+    "03 任務牆": "tasks",
+    "任務牆": "tasks",
+    "04 耍廢室": "lounge",
+    "耍廢室": "lounge",
+    "05 會議室": "meeting",
+    "會議室": "meeting",
+    "06 休息區": "rest",
+    "休息區": "rest",
+}
+
+
+def extract_profile_from_md_section(md: str) -> dict:
+    patch: dict = {}
+    m_name = re.search(r"-\s*\*\*(?:姓名|名稱)\*\*[：:]\s*([^\r\n]+)", md)
+    if m_name and m_name.group(1).strip():
+        patch["name"] = m_name.group(1).strip()
+    m_dept = re.search(r"-\s*\*\*職能(?:部門)?\*\*[：:]\s*([^\r\n]+)", md)
+    if m_dept and m_dept.group(1).strip():
+        patch["department"] = m_dept.group(1).strip()
+    m_role = re.search(r"-\s*\*\*職稱\s*/?\s*角色\*\*[：:]\s*([^\r\n]+)", md)
+    if m_role and m_role.group(1).strip():
+        patch["role"] = m_role.group(1).strip()
+    m_pos = re.search(r"-\s*\*\*(?:專業)?定位\*\*[：:]\s*([^\r\n]+)", md)
+    if m_pos and m_pos.group(1).strip():
+        pos_val = m_pos.group(1).strip()
+        patch["positioning"] = pos_val
+        if "role" not in patch and ("／" in pos_val or "/" in pos_val):
+            role_part = re.split(r"[／/]", pos_val)[0].strip()
+            if role_part and len(role_part) <= 24:
+                patch["role"] = role_part
+    m_av = re.search(r"-\s*\*\*頭像\*\*[：:]\s*`?([^`\r\n（(]+)`?", md)
+    if m_av and m_av.group(1).strip():
+        av = m_av.group(1).strip()
+        if av and "自訂照片" not in av and "支援" not in av:
+            patch["avatar"] = av
+    m_spec = re.search(r"-\s*\*\*(?:核心)?專長\*\*[：:]\s*([^\r\n]+)", md)
+    if m_spec and m_spec.group(1).strip():
+        patch["specialty"] = m_spec.group(1).strip()
+    m_pers = re.search(r"-\s*\*\*個性(?:與)?背景\*\*[：:]\s*([^\r\n]+)", md)
+    if m_pers and m_pers.group(1).strip():
+        patch["personality"] = m_pers.group(1).strip()
+    return patch
+
+
+def parse_hr_roster_markdown(md_text: str) -> dict[str, dict]:
+    result: dict[str, dict] = {}
+    if not md_text or not md_text.strip():
+        return result
+
+    for raw_line in md_text.splitlines():
+        line = raw_line.strip()
+        if not line.startswith("|") or not line.endswith("|") or "---" in line:
+            continue
+        cols = [c.strip() for c in line.split("|")[1:-1]]
+        if len(cols) < 5:
+            continue
+        id_col = ""
+        name_col = ""
+        dept_col = ""
+        pos_col = ""
+        avatar_col = ""
+        extra1 = ""
+        extra2 = ""
+        if len(cols) > 1 and "`" in cols[1]:
+            id_col = cols[1].replace("`", "").strip()
+            name_col = cols[2].replace("**", "").strip() if len(cols) > 2 else ""
+            dept_col = cols[3] if len(cols) > 3 else ""
+            pos_col = cols[4] if len(cols) > 4 else ""
+            avatar_col = cols[5] if len(cols) > 5 else ""
+            extra1 = cols[6] if len(cols) > 6 else ""
+        elif "`" in cols[0]:
+            id_col = cols[0].replace("`", "").strip()
+            name_col = cols[1].replace("**", "").strip() if len(cols) > 1 else ""
+            dept_col = cols[2] if len(cols) > 2 else ""
+            pos_col = cols[3] if len(cols) > 3 else ""
+            avatar_col = cols[4] if len(cols) > 4 else ""
+            extra1 = cols[5] if len(cols) > 5 else ""
+            extra2 = cols[6] if len(cols) > 6 else ""
+        if not id_col or id_col == "id":
+            continue
+        patch = result.get(id_col, {})
+        if name_col:
+            patch["name"] = name_col
+        if dept_col:
+            patch["department"] = dept_col
+        if pos_col:
+            patch["positioning"] = pos_col
+            if "／" in pos_col or "/" in pos_col:
+                r = re.split(r"[／/]", pos_col)[0].strip()
+                if r:
+                    patch["role"] = r
+        clean_av = re.split(r"[（(]", avatar_col.replace("`", ""))[0].strip()
+        if clean_av and clean_av != "🖼️" and "自訂" not in clean_av:
+            patch["avatar"] = clean_av
+        if extra1 in ZONE_NAME_MAP:
+            patch["zoneId"] = ZONE_NAME_MAP[extra1]
+        elif extra1 and extra2:
+            patch["specialty"] = extra1
+            patch["personality"] = extra2
+        result[id_col] = patch
+
+    pattern = re.compile(
+        r"###\s+[^\r\n]*?`([a-zA-Z0-9_-]+)`[^\r\n]*\r?\n([\s\S]*?)(?=\r?\n###\s+|\r?\n##\s+|$)"
+    )
+    for m in pattern.finditer(md_text):
+        agent_id = m.group(1).strip()
+        sec_patch = extract_profile_from_md_section(m.group(2))
+        result[agent_id] = {**(result.get(agent_id) or {}), **sec_patch}
+
+    return result
+
+
+def get_hr_roster_paths() -> list[Path]:
+    return [
+        BASE_DIR / "docs" / "HR_COLLEAGUE_ROSTER.md",
+        BASE_DIR / "public" / "docs" / "HR_COLLEAGUE_ROSTER.md",
+    ]
+
+
+def read_latest_hr_roster_markdown() -> str:
+    candidates = [p for p in get_hr_roster_paths() if p.exists()]
+    if not candidates:
+        return ""
+    newest = max(candidates, key=lambda p: p.stat().st_mtime)
+    try:
+        return newest.read_text(encoding="utf-8")
+    except Exception:
+        return ""
+
+
+def sync_from_hr_roster_markdown(override_md: str | None = None) -> dict[str, dict]:
+    md_text = override_md if override_md is not None else read_latest_hr_roster_markdown()
+    if override_md is not None and override_md.strip():
+        for p in get_hr_roster_paths():
+            try:
+                p.parent.mkdir(parents=True, exist_ok=True)
+                p.write_text(override_md, encoding="utf-8")
+            except Exception:
+                pass
+        dist_hr = DIST_DIR / "docs" / "HR_COLLEAGUE_ROSTER.md"
+        if DIST_DIR.exists():
+            try:
+                dist_hr.parent.mkdir(parents=True, exist_ok=True)
+                dist_hr.write_text(override_md, encoding="utf-8")
+            except Exception:
+                pass
+
+    parsed = parse_hr_roster_markdown(md_text)
+    if not parsed:
+        return {}
+
+    # Update BUILTIN_COLLEAGUES in-memory
+    for b in BUILTIN_COLLEAGUES:
+        if b["id"] in parsed:
+            b.update(parsed[b["id"]])
+
+    # Update custom_agents.json if custom agent present
+    if CUSTOM_AGENTS_PATH.exists():
+        try:
+            custom_list = json.loads(CUSTOM_AGENTS_PATH.read_text(encoding="utf-8"))
+            changed = False
+            for c in custom_list:
+                cid = c.get("id")
+                if cid in parsed:
+                    c.update(parsed[cid])
+                    changed = True
+            if changed:
+                CUSTOM_AGENTS_PATH.write_text(json.dumps(custom_list, ensure_ascii=False, indent=2), encoding="utf-8")
+                pub_custom = BASE_DIR / "public" / "data" / "custom_agents.json"
+                if pub_custom.parent.exists():
+                    pub_custom.write_text(json.dumps(custom_list, ensure_ascii=False, indent=2), encoding="utf-8")
+        except Exception:
+            pass
+
+    # Merge into agent_profiles.json
+    profiles: dict = {}
+    if PROFILES_PATH.exists():
+        try:
+            profiles = json.loads(PROFILES_PATH.read_text(encoding="utf-8"))
+        except Exception:
+            profiles = {}
+    for aid, patch in parsed.items():
+        profiles[aid] = {**(profiles.get(aid) or {}), **patch}
+    try:
+        PROFILES_PATH.write_text(json.dumps(profiles, ensure_ascii=False, indent=2), encoding="utf-8")
+        for target_dir in [BASE_DIR / "public" / "data", BASE_DIR / "data", DIST_DIR / "data"]:
+            if target_dir.exists():
+                (target_dir / "agent_profiles.json").write_text(
+                    json.dumps(profiles, ensure_ascii=False, indent=2), encoding="utf-8"
+                )
+    except Exception:
+        pass
+
+    return profiles
+
+
 def load_all_skills_index() -> dict[str, dict]:
+    sync_from_hr_roster_markdown()
     index: dict[str, dict] = {}
     for b in BUILTIN_COLLEAGUES:
         info = write_colleague_skill_files(dict(b))
@@ -534,8 +736,30 @@ def save_avatar():
     return jsonify({"ok": True, "avatars": existing})
 
 
+@app.get("/api/hr-roster")
+def get_hr_roster():
+    md_text = read_latest_hr_roster_markdown()
+    profiles = sync_from_hr_roster_markdown()
+    return jsonify({"ok": True, "markdown": md_text, "profiles": profiles})
+
+
+@app.post("/api/hr-roster")
+def save_hr_roster():
+    global SKILL_INDEX
+    data = request.get_json(silent=True) or {}
+    md_text = (data.get("markdown") or "").strip()
+    if not md_text:
+        return jsonify({"error": "markdown is required"}), 400
+    profiles = sync_from_hr_roster_markdown(override_md=md_text)
+    SKILL_INDEX = load_all_skills_index()
+    return jsonify({"ok": True, "profiles": profiles, "skills": SKILL_INDEX})
+
+
 @app.get("/api/agents/profile")
 def get_agent_profiles():
+    profiles = sync_from_hr_roster_markdown()
+    if profiles:
+        return jsonify(profiles)
     if PROFILES_PATH.exists():
         try:
             return jsonify(json.loads(PROFILES_PATH.read_text(encoding="utf-8")))

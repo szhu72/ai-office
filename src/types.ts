@@ -8,7 +8,7 @@ export type AgentStatus =
   | "blocked"
   | "error";
 
-export type TaskStatus = "進行中" | "待審核" | "已核准" | "需修改";
+export type TaskStatus = "進行中" | "待審核" | "已核准" | "需修改" | "已結束";
 
 export interface ToolRecord {
   name: string;

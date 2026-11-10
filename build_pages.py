@@ -21,6 +21,17 @@ DEV_INDEX = """<!doctype html>
 """
 
 def main():
+    docs = ROOT / "docs"
+    pub_docs = ROOT / "public" / "docs"
+    pub_docs.mkdir(parents=True, exist_ok=True)
+    # Preserve any direct edits made to docs/*.md before rebuilding
+    for md_name in ["HR_COLLEAGUE_ROSTER.md", "BRAND_VISUAL_SYSTEM.md", "brand-colors.pdf", "WORKSPACE_MAP.md"]:
+        top_doc = docs / md_name
+        pub_doc = pub_docs / md_name
+        if top_doc.exists():
+            if not pub_doc.exists() or top_doc.stat().st_mtime > pub_doc.stat().st_mtime:
+                shutil.copy2(top_doc, pub_doc)
+
     (ROOT / "index.html").write_text(DEV_INDEX, encoding="utf-8")
     subprocess.run(["npm.cmd", "run", "build"], cwd=ROOT, check=True)
     dist = ROOT / "dist"
@@ -36,10 +47,14 @@ def main():
             shutil.copytree(item, dest)
         else:
             shutil.copy2(item, dest)
-    docs = ROOT / "docs"
     if docs.exists():
         shutil.rmtree(docs)
     shutil.copytree(dist, docs)
+    # Also keep HR_COLLEAGUE_ROSTER.md, BRAND_VISUAL_SYSTEM.md, WORKSPACE_MAP.md directly at docs/<name>
+    for md_name in ["HR_COLLEAGUE_ROSTER.md", "BRAND_VISUAL_SYSTEM.md", "brand-colors.pdf", "WORKSPACE_MAP.md"]:
+        pub_doc = pub_docs / md_name
+        if pub_doc.exists():
+            shutil.copy2(pub_doc, docs / md_name)
     print("Built and synced dist/ -> root and docs/ successfully.")
 
 if __name__ == "__main__":

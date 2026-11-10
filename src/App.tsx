@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
 import { officeDataSource } from "./officeDataSource";
-import { askAgent, askMeetingBrainstorm, askUiEvolve, deleteCustomAgentApi, extractProfileFromSkillMarkdown, fetchAgentProfiles, fetchAvatarOverrides, fetchColleagueSkills, fetchCustomAgents, fetchSavedUiPatch, getBrowserApiKey, resetUiEvolve, saveAgentProfileApi, saveAvatarOverrideApi, saveColleagueSkillApi, saveCustomAgentApi, setBrowserApiKey, type ColleagueSkillInfo, type UiEvolutionPatch } from "./aiClient";
+import { askAgent, askMeetingBrainstorm, askUiEvolve, deleteCustomAgentApi, extractProfileFromSkillMarkdown, fetchAgentProfiles, fetchAvatarOverrides, fetchColleagueSkills, fetchCustomAgents, fetchHrRosterMarkdown, fetchSavedUiPatch, getBrowserApiKey, resetUiEvolve, saveAgentProfileApi, saveAvatarOverrideApi, saveColleagueSkillApi, saveCustomAgentApi, saveHrRosterMarkdownApi, setBrowserApiKey, type ColleagueSkillInfo, type UiEvolutionPatch } from "./aiClient";
 import MascotAvatar from "./MascotAvatar";
 import type {
   ActivityEvent,
@@ -198,6 +198,7 @@ function App() {
     latestOutput: "",
   });
   const [skillsMap, setSkillsMap] = useState<Record<string, ColleagueSkillInfo>>({});
+  const [hrRosterMd, setHrRosterMd] = useState<string>("");
   const [browserApiKey, setBrowserApiKeyState] = useState<string>(() => getBrowserApiKey());
 
   // Load saved AI UI patch, custom agents, profile overrides, avatar overrides & generated SKILL.md index on startup
@@ -205,6 +206,10 @@ function App() {
     void fetchCustomAgents().then(async (savedAgents) => {
       if (savedAgents.length) {
         officeDataSource.dispatch({ type: "agent.hydrateCustom", agents: savedAgents });
+      }
+      const md = await fetchHrRosterMarkdown();
+      if (md) {
+        setHrRosterMd(md);
       }
       const profiles = await fetchAgentProfiles();
       if (Object.keys(profiles).length) {
@@ -291,7 +296,32 @@ function App() {
 
   const activeAgents = office.agents.filter((agent) => agent.status !== "idle").length;
   const blockedAgents = office.agents.filter((agent) => agent.status === "blocked" || agent.status === "error").length;
-  const today = new Intl.DateTimeFormat("zh-TW", { weekday: "long", month: "long", day: "numeric" }).format(new Date());
+
+  const formatClock = () => {
+    const now = new Date();
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+    const dd = String(now.getDate()).padStart(2, "0");
+    const hh = String(now.getHours()).padStart(2, "0");
+    const min = String(now.getMinutes()).padStart(2, "0");
+    const ss = String(now.getSeconds()).padStart(2, "0");
+    return `${mm}:${dd} ${hh}:${min}:${ss}`;
+  };
+
+  const [officeClock, setOfficeClock] = useState(formatClock);
+  const [bubbleCycle, setBubbleCycle] = useState(0);
+
+  useEffect(() => {
+    const clockTimer = setInterval(() => {
+      setOfficeClock(formatClock());
+    }, 1000);
+    const bubbleTimer = setInterval(() => {
+      setBubbleCycle((c) => (c + 1) % 1000);
+    }, 5000);
+    return () => {
+      clearInterval(clockTimer);
+      clearInterval(bubbleTimer);
+    };
+  }, []);
   const selectedAgent = selection?.kind === "agent"
     ? office.agents.find((agent) => agent.id === selection.id)
     : undefined;
@@ -789,21 +819,34 @@ function App() {
     });
   };
 
+  const finishTask = (taskId: string) => {
+    const taskToFinish = office.tasks.find((item) => item.id === taskId);
+    if (!taskToFinish) return;
+    officeDataSource.dispatch({
+      type: "task.finish",
+      taskId: taskToFinish.id,
+      event: createEvent(taskToFinish.ownerId, "handoff", `結束任務：${taskToFinish.title}`, "總監視情況已手動結束此任務，負責人轉入待命狀態。"),
+    });
+  };
+
   return (
     <div className={mobile916 ? "mobile-916-stage" : ""}>
       <div className={`office-app ${mobile916 ? "viewport-mobile-916" : ""}`}>
         <header className="topbar">
         <div className="brand-lockup">
           <div className="brand-mark" aria-hidden="true"><span>O</span></div>
-          <div>
+          <div className="brand-name-group">
             <div className="brand-name">
-              {uiPatch?.brandTitle || "無所事事辦公室"}
-              <span className="status-icon-badge" title="系統連線正常"><i className="live-dot" /> {today}</span>
+              <span className="brand-title-text">{uiPatch?.brandTitle || "無所事事辦公室"}</span>
+              <span className="office-time-ticker" title="辦公室重要時間與日期 (MM:DD HH:MM:SS)">
+                <i className="live-dot" /> {officeClock}
+              </span>
             </div>
           </div>
         </div>
         <div className="topbar-right">
-          <div className="topbar-desktop-tools">
+          {!mobile916 && (
+            <div className="topbar-desktop-tools">
             <button
               type="button"
               className="secondary-top-button"
@@ -894,6 +937,7 @@ function App() {
               🎮 指令台
             </button>
           </div>
+          )}
 
           <div className="topbar-compact-actions">
             <button
@@ -986,6 +1030,9 @@ function App() {
               }
               setPopup({ kind: "zone", zoneId });
             }}
+            onFinishTask={finishTask}
+            onOpenAssign={() => setModal("assign")}
+            bubbleCycle={bubbleCycle}
           />
 
           <div className="scene-footer">
@@ -1235,6 +1282,7 @@ function App() {
           onOpenAssign={() => { setPopup(null); setModal("assign"); }}
           onOpenActionModal={(m) => { setPopup(null); setModal(m); }}
           onApprove={approveCurrent}
+          onFinishTask={finishTask}
           mobile916={mobile916}
           onToggleMobile916={() => { setMobile916((v) => !v); setPopup(null); }}
           onRunOfficeRound={() => { setPopup(null); runOfficeRound(); }}
@@ -1343,6 +1391,23 @@ function App() {
             }
             setPopup({ kind: "agent-status", agentId: ag.id });
           }}
+          hrRosterMd={hrRosterMd}
+          onChangeHrRosterMd={setHrRosterMd}
+          onSaveHrRosterMd={async (mdContent) => {
+            setHrRosterMd(mdContent);
+            const profiles = await saveHrRosterMarkdownApi(mdContent);
+            if (Object.keys(profiles).length) {
+              officeDataSource.dispatch({ type: "agent.hydrateProfiles", profiles });
+              addEvent(
+                "planner",
+                "file",
+                `已根據 HR 檔案館文本同步更新 ${Object.keys(profiles).length} 位同事基礎資料`,
+                "所有同事的名稱、職能、定位、頭像、核心專長與個性背景已完成同步。",
+              );
+            }
+            const refreshedSkills = await fetchColleagueSkills();
+            setSkillsMap(refreshedSkills);
+          }}
           browserApiKey={browserApiKey}
           onSaveBrowserApiKey={(key) => {
             setBrowserApiKey(key);
@@ -1357,6 +1422,218 @@ function App() {
   );
 }
 
+function getDynamicBubble(
+  agent: Agent,
+  office: OfficeState,
+  thinkingStage?: string,
+  cycle: number = 0
+): string {
+  if (thinkingStage) return thinkingStage;
+  const runningTool = agent.tools?.find((t) => t.kind === "running");
+  if (runningTool) {
+    return `⚡ 正在執行 ${runningTool.name}`;
+  }
+
+  // 1. 會議室互相對話與討論內容
+  if (agent.zoneId === "meeting") {
+    const attendees = office.agents.filter((a) => a.zoneId === "meeting");
+    const myIdx = Math.max(0, attendees.findIndex((a) => a.id === agent.id));
+    const turn = (cycle + myIdx) % 4;
+    if (agent.id === "planner") {
+      const turns = [
+        "這版 MVP 先抓最核心流程！",
+        "大家先把本週產出標準定下來！",
+        "對齊一下，首版活動流要包含卡關原因。",
+        "排定優先級：工作區與任務牆為 P0！",
+      ];
+      return turns[turn];
+    }
+    if (agent.id === "analyst") {
+      const turns = [
+        "18% 使用者要求看到卡關原因！",
+        "數據顯示目前指標有 3 項健康。",
+        "漏斗分析顯示此流程最為關鍵。",
+        "我建議第一版先聚焦異常與交接事件。",
+      ];
+      return turns[turn];
+    }
+    if (agent.id === "engineer") {
+      const turns = [
+        "工程底層已支援雙模式，隨時可切！",
+        "先跑一次端到端測試，確認零報錯。",
+        "01 看板橫幅排版已重構完成！",
+        "響應式斷點與手機排版已優化完成。",
+      ];
+      return turns[turn];
+    }
+    if (agent.id === "researcher") {
+      const turns = [
+        "UX 訪談顯示卡關時需要明確引導。",
+        "視覺階層要乾淨，不要資訊過載。",
+        "字體與 WCAG 對比度已調到最佳。",
+        "RPG 紙質手繪質感大家覺得如何？",
+      ];
+      return turns[turn];
+    }
+    if (agent.id === "virgo") {
+      const turns = [
+        "驗收標準不能打折，授權規範要過！",
+        "附件缺少授權說明的不能放行！",
+        "細節零容忍，上線前 Checklist 逐項驗收中。",
+        "檢查 RWD 邊界條件與極端情境。",
+      ];
+      return turns[turn];
+    }
+    if (agent.id.includes("1794277128232") || agent.name.includes("東東")) {
+      const turns = [
+        "汪！會議室好熱鬧，我也來聽聽！",
+        "大家討論得好認真，加油～🐾",
+        "東東提議：開完會大家一起去散步！",
+        "開會辛苦了！東東給大家打打氣～",
+      ];
+      return turns[turn];
+    }
+    if (agent.id === "momo" || agent.role.includes("吉祥物")) {
+      const turns = [
+        "汪！大家深呼吸～開會不要太嚴肅喔！",
+        "來點心靈療癒，喝口水再繼續～",
+        "麻糬覺得這版好讚！汪汪～",
+        "深呼吸～大家休息一下喝杯水！",
+      ];
+      return turns[turn];
+    }
+    const defaultTurns = [
+      `針對會議議題提供專業意見：${agent.specialty ? agent.specialty.slice(0, 12) + "..." : agent.role}`,
+      "認同大家的討論方向，全力配合！",
+      `從${agent.role}角度評估可行性中`,
+      "會議記錄與後續行動方案對齊中",
+    ];
+    return defaultTurns[turn];
+  }
+
+  // 2. 東東 (Dongdong)：去散步、巡邏、探班
+  if (agent.id.includes("1794277128232") || agent.name.includes("東東")) {
+    if (agent.zoneId === "lounge" || agent.zoneId === "rest" || agent.status === "idle") {
+      const walks = [
+        "🐕 東東在辦公室到處散步巡邏～",
+        "散步中！來看看大家在忙什麼🐾",
+        "剛剛繞了辦公室一圈，氣氛超棒！",
+        "找米米跟麻糬玩耍中～",
+        "巡邏到沙發區，伸個懶腰🐾",
+        "去耍廢室散個步充電一下！",
+      ];
+      return walks[cycle % walks.length];
+    }
+    if (agent.zoneId === "work") {
+      const workDialogs = [
+        "來工作區看阿碼寫程式～",
+        "給辛苦工作的大家遞上一杯熱咖啡☕",
+        "汪！工作區今天進度飛快！",
+      ];
+      return workDialogs[cycle % workDialogs.length];
+    }
+    if (agent.zoneId === "board") {
+      const boardDialogs = [
+        "研究一下大家在討論什麼好點子～",
+        "好有趣的點子，東東也投一票！",
+      ];
+      return boardDialogs[cycle % boardDialogs.length];
+    }
+    return "🐕 東東在辦公室散步巡邏中！";
+  }
+
+  // 3. 麻糬 (Momo)
+  if (agent.id === "momo") {
+    if (agent.zoneId === "rest" || agent.zoneId === "lounge" || agent.status === "idle") {
+      const momoRest = [
+        "汪！窩在沙發旁喝水待命",
+        "觀察大家有沒有太累～🐾",
+        "需要我搖尾巴打氣嗎？",
+        "隨時待命，準備破冰！",
+      ];
+      return momoRest[cycle % momoRest.length];
+    }
+  }
+
+  // 4. 阿碼 (Ama)
+  if (agent.id === "engineer") {
+    if (agent.zoneId === "work") {
+      const amaWork = [
+        "01 看板全寬橫幅排版中...",
+        "檢查 RWD 響應式斷點與手機適配",
+        "優化純前端無伺服器雙模式串接",
+        "端到端無白屏保護機制測試中",
+      ];
+      return amaWork[cycle % amaWork.length];
+    }
+    if (agent.zoneId === "board") {
+      return "這個技術選型很可行，架構已對齊！";
+    }
+    if (agent.zoneId === "rest" || agent.zoneId === "lounge") {
+      return "喝口黑咖啡，待會繼續寫代碼☕";
+    }
+  }
+
+  // 5. 阿研 (Ayan)
+  if (agent.id === "researcher") {
+    if (agent.zoneId === "work") {
+      const ayanWork = [
+        "研究使用者動線中...",
+        "調校 RPG 紙質手繪質感",
+        "字體與 WCAG 對比度檢查完成",
+        "競品 UX 交互拆解中",
+      ];
+      return ayanWork[cycle % ayanWork.length];
+    }
+    if (agent.zoneId === "board") {
+      return "這個版面配色感覺更舒服！";
+    }
+    if (agent.zoneId === "rest" || agent.zoneId === "lounge") {
+      return "翻閱前沿設計雜誌充電中📖";
+    }
+  }
+
+  // 6. 小橘 (Xiaoju)
+  if (agent.id === "planner") {
+    if (agent.zoneId === "board") {
+      const xiaojuBoard = [
+        "先對齊目標！",
+        "正在規劃下一個衝刺里程碑",
+        "梳理 P0/P1/P2 任務優先級",
+        "把總監願景拆解為可執行的 MVP",
+      ];
+      return xiaojuBoard[cycle % xiaojuBoard.length];
+    }
+    if (agent.zoneId === "work") {
+      return "整理訪談筆記與功能清單中📝";
+    }
+  }
+
+  // 7. 小處 (Xiaochu)
+  if (agent.id === "virgo") {
+    const virgoThoughts = [
+      "放大鏡準備好了，細節零容忍",
+      "請檢視 brand-colors.pdf 規範",
+      "驗收標準不能打折，授權規範要過",
+      "逐項審核 Checklist 中，零漏洞！",
+    ];
+    return virgoThoughts[cycle % virgoThoughts.length];
+  }
+
+  // 8. 數據 (Shuju)
+  if (agent.id === "analyst") {
+    const analystThoughts = [
+      "樣本信賴區間 95%，數據穩健",
+      "分析停留時間與點擊漏斗中",
+      "18% 使用者希望看到卡關原因",
+      "量化指標持續監控中📊",
+    ];
+    return analystThoughts[cycle % analystThoughts.length];
+  }
+
+  return agent.bubble || "專注思考中…";
+}
+
 interface OfficeSceneProps {
   office: OfficeState;
   selectedAgentId?: string;
@@ -1365,6 +1642,9 @@ interface OfficeSceneProps {
   onOpenAgentChat: (id: string) => void;
   onSelectTask: (id: string) => void;
   onSelectZone: (zoneId: string) => void;
+  onFinishTask: (taskId: string) => void;
+  onOpenAssign: () => void;
+  bubbleCycle: number;
 }
 
 function OfficeScene({
@@ -1375,6 +1655,9 @@ function OfficeScene({
   onOpenAgentChat,
   onSelectTask,
   onSelectZone,
+  onFinishTask,
+  onOpenAssign,
+  bubbleCycle,
 }: OfficeSceneProps) {
   return (
     <div className="office-map">
@@ -1383,11 +1666,17 @@ function OfficeScene({
       <div className="room-grid">
         {office.zones.map((zone) => {
           const agents = office.agents.filter((agent) => agent.zoneId === zone.id);
+          const isTaskBanner = zone.kind === "tasks";
+
           return (
             <section
               key={zone.id}
-              className={`zone-card zone-${zone.id} zone-${zone.kind} zone-interactive`}
-              style={{ gridColumn: zone.position.column, gridRow: zone.position.row }}
+              className={`zone-card zone-${zone.id} zone-${zone.kind} ${isTaskBanner ? "zone-tasks-banner" : ""} zone-interactive`}
+              style={
+                isTaskBanner
+                  ? { gridColumn: "1 / -1", gridRow: 1 }
+                  : { gridColumn: zone.position.column, gridRow: zone.position.row }
+              }
               onClick={() => onSelectZone(zone.id)}
               onKeyDown={(event) => event.key === "Enter" && onSelectZone(zone.id)}
               role="button"
@@ -1398,10 +1687,19 @@ function OfficeScene({
                 <div className="zone-label">
                   <span className="zone-marker">{zone.marker}</span>
                   <h2>{zone.name}</h2>
+                  {isTaskBanner && (
+                    <span className="task-wall-subtitle">
+                      📢 全域任務目標公告看板 · 員工於工作區提取目標，無須進駐此區
+                    </span>
+                  )}
                 </div>
                 <div className="zone-status-icons">
                   {zone.kind === "work" && <span className="zone-live" title="工作中人數"><i /> {agents.length}</span>}
-                  {zone.kind === "tasks" && <span className="task-wall-count" title="進行中任務">{office.tasks.filter((task) => task.status !== "已核准").length} ⌁</span>}
+                  {zone.kind === "tasks" && (
+                    <span className="task-wall-count" title="進行中任務">
+                      {office.tasks.filter((task) => task.status !== "已核准" && task.status !== "已結束").length} / {office.tasks.length} ⌁
+                    </span>
+                  )}
                   {zone.kind !== "work" && zone.kind !== "tasks" && agents.length > 0 && (
                     <span className="zone-live" title="房內人數"><i /> {agents.length}</span>
                   )}
@@ -1415,42 +1713,106 @@ function OfficeScene({
                   </button>
                 </div>
               </div>
+
               {zone.kind === "work" && <WorkProps />}
               {zone.kind === "break" && <BreakProps lounge={zone.id === "lounge"} />}
               {zone.kind === "board" && <BoardProps />}
               {zone.kind === "meeting" && <MeetingProps />}
+
+              {/* 01 看板：橫幅比例等於頁面寬度，含結束任務功能 */}
               {zone.kind === "tasks" && (
-                <div className="mini-task-list">
-                  {office.tasks.slice(0, 3).map((task) => {
-                    const owner = office.agents.find((agent) => agent.id === task.ownerId);
-                    return (
-                      <button
-                        type="button"
-                        key={task.id}
-                        className="mini-task-card"
-                        onClick={(event) => { event.stopPropagation(); onSelectTask(task.id); }}
-                      >
-                        <span className={`task-priority ${task.status === "需修改" ? "priority-warn" : ""}`} />
-                        <span className="mini-task-title">{task.title}</span>
-                        <span className="mini-task-owner">{owner ? <AvatarView avatar={owner.avatar} role={owner.role} /> : null}</span>
-                      </button>
-                    );
-                  })}
+                <div className="task-wall-banner-body">
+                  <div className="task-wall-cards-grid">
+                    {office.tasks.map((task) => {
+                      const owner = office.agents.find((agent) => agent.id === task.ownerId);
+                      const isEnded = task.status === "已結束" || task.status === "已核准";
+                      return (
+                        <div
+                          key={task.id}
+                          className={`task-wall-banner-card ${isEnded ? "task-ended" : ""}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSelectTask(task.id);
+                          }}
+                          role="button"
+                          tabIndex={0}
+                          title="點擊查看任務步驟與詳情"
+                        >
+                          <div className="tw-card-top">
+                            <div className="tw-card-title-group">
+                              <span className={`task-priority ${task.status === "需修改" ? "priority-warn" : ""}`} />
+                              <h3 className="tw-card-title">{task.title}</h3>
+                            </div>
+                            <span className={`task-status-pill status-${task.status}`}>{task.status}</span>
+                          </div>
+                          <p className="tw-card-goal">{task.goal}</p>
+                          <div className="tw-card-bottom">
+                            <div className="tw-card-owner">
+                              {owner ? (
+                                <>
+                                  <AvatarView avatar={owner.avatar} role={owner.role} />
+                                  <span>{owner.name}</span>
+                                </>
+                              ) : <span>待指派</span>}
+                              <span className="tw-card-due">· {task.due}</span>
+                            </div>
+                            <div className="tw-card-actions">
+                              {!isEnded ? (
+                                <button
+                                  type="button"
+                                  className="tw-finish-btn"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onFinishTask(task.id);
+                                  }}
+                                  title="結束此任務並讓負責人結案待命"
+                                >
+                                  🏁 結束任務
+                                </button>
+                              ) : (
+                                <span className="tw-ended-label">✓ 已結束</span>
+                              )}
+                              <span className="tw-progress-badge">{task.progress}%</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="task-banner-footer-actions">
+                    <button
+                      type="button"
+                      className="task-banner-assign-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenAssign();
+                      }}
+                      title="派發新任務"
+                    >
+                      ＋ 派發新任務
+                    </button>
+                  </div>
                 </div>
               )}
-              {agents.length > 0 && (
+
+              {/* 任務牆不讓員工進入區域，其他區域正常渲染思考氣泡與精靈 */}
+              {zone.kind !== "tasks" && agents.length > 0 && (
                 <div className={`zone-agents agent-count-${Math.min(agents.length, 3)}`}>
-                  {agents.map((agent, index) => (
-                    <AgentSprite
-                      key={agent.id}
-                      agent={agent}
-                      thinkingStage={thinkingAgents[agent.id]}
-                      selected={selectedAgentId === agent.id}
-                      onClick={() => onSelectAgent(agent.id)}
-                      onDoubleClick={() => onOpenAgentChat(agent.id)}
-                      delay={index * 0.13}
-                    />
-                  ))}
+                  {agents.map((agent, index) => {
+                    const bubble = getDynamicBubble(agent, office, thinkingAgents[agent.id], bubbleCycle);
+                    return (
+                      <AgentSprite
+                        key={agent.id}
+                        agent={agent}
+                        thinkingStage={thinkingAgents[agent.id]}
+                        displayBubble={bubble}
+                        selected={selectedAgentId === agent.id}
+                        onClick={() => onSelectAgent(agent.id)}
+                        onDoubleClick={() => onOpenAgentChat(agent.id)}
+                        delay={index * 0.13}
+                      />
+                    );
+                  })}
                 </div>
               )}
             </section>
@@ -1467,24 +1829,26 @@ function AgentSprite({
   selected,
   onClick,
   onDoubleClick,
-  delay,
+  delay = 0,
+  displayBubble,
 }: {
   agent: Agent;
   thinkingStage?: string;
   selected: boolean;
   onClick: () => void;
-  onDoubleClick: () => void;
-  delay: number;
+  onDoubleClick?: () => void;
+  delay?: number;
+  displayBubble: string;
 }) {
   const isThinking = Boolean(thinkingStage) || agent.status === "thinking";
-  const dialogueText = thinkingStage || agent.bubble;
+  const dialogueText = displayBubble;
   const isLongDialogue = dialogueText.length > 14;
   return (
     <button
       type="button"
       className={`agent-sprite agent-state-${agent.status} ${selected ? "agent-selected" : ""} ${agent.status === "idle" ? "agent-resting" : ""} ${isThinking ? "agent-thinking-active" : ""}`}
       onClick={(event) => { event.stopPropagation(); onClick(); }}
-      onDoubleClick={(event) => { event.stopPropagation(); onDoubleClick(); }}
+      onDoubleClick={(event) => { event.stopPropagation(); onDoubleClick?.(); }}
       style={{ animationDelay: `${delay}s` }}
       aria-label={`查看${agent.name}，${agent.role}，${statusNames[agent.status]}`}
       title="單擊查看面板 · 雙擊開啟對話視窗"
@@ -1495,11 +1859,11 @@ function AgentSprite({
             {thinkingStage}
             <i className="thinking-dots"><b>.</b><b>.</b><b>.</b></i>
           </>
-        ) : agent.bubble}
+        ) : dialogueText}
       </span>
       <span className="sprite-figure">
         <span className="sprite-shadow" />
-        <span className={`sprite-avatar ${agent.role === "吉祥物" ? "mascot-avatar" : ""}`}>
+        <span className={`sprite-avatar ${agent.role.includes("吉祥物") ? "mascot-avatar" : ""}`}>
           <AvatarView avatar={agent.avatar} role={agent.role} />
           {isThinking && <i className="sprite-halo-ring" />}
         </span>
@@ -2013,6 +2377,7 @@ function GamePopupModal({
   onRunBrainstorm,
   onOpenAssign,
   onApprove,
+  onFinishTask,
   mobile916,
   onToggleMobile916,
   onRunOfficeRound,
@@ -2034,6 +2399,9 @@ function GamePopupModal({
   skillsMap,
   onSelectSkillAgent,
   onSaveSkillMarkdown,
+  hrRosterMd,
+  onChangeHrRosterMd,
+  onSaveHrRosterMd,
   browserApiKey,
   onSaveBrowserApiKey,
 }: {
@@ -2057,6 +2425,7 @@ function GamePopupModal({
   onRunBrainstorm: (topic: string) => void;
   onOpenAssign: () => void;
   onApprove: () => void;
+  onFinishTask: (taskId: string) => void;
   mobile916: boolean;
   onToggleMobile916: () => void;
   onRunOfficeRound: () => void;
@@ -2148,6 +2517,9 @@ function GamePopupModal({
   skillsMap: Record<string, ColleagueSkillInfo>;
   onSelectSkillAgent: (agentId: string) => void;
   onSaveSkillMarkdown: (agentId: string, mdContent: string) => void;
+  hrRosterMd: string;
+  onChangeHrRosterMd: (val: string) => void;
+  onSaveHrRosterMd: (mdContent: string) => void;
   browserApiKey: string;
   onSaveBrowserApiKey: (key: string) => void;
 }) {
@@ -2624,6 +2996,20 @@ function GamePopupModal({
               >
                 ↻ 要求修改
               </button>
+              {task.status !== "已核准" && task.status !== "已結束" && (
+                <button
+                  type="button"
+                  className="primary-button"
+                  style={{ background: "#a35338", borderColor: "#853e27" }}
+                  onClick={() => {
+                    onFinishTask(task.id);
+                    onClose();
+                  }}
+                  title="視情況結束此任務並讓負責人結案待命"
+                >
+                  🏁 結束任務
+                </button>
+              )}
               <button
                 type="button"
                 className="primary-button"
@@ -2656,6 +3042,29 @@ function GamePopupModal({
                   onClick={() => onNavigatePopup({ kind: "agent-create" })}
                 >
                   ＋ 招募新同事
+                </button>
+              </div>
+            </div>
+
+            <div className="rpg-thought-box" style={{ marginBottom: 10 }}>
+              <strong>📝 HR 檔案館文本雙向同步（HR_COLLEAGUE_ROSTER.md）：</strong>
+              <p style={{ marginBottom: 6 }}>
+                可直接於下方修改或貼上 HR 檔案館文本，點擊「💾 根據 HR 文本更新全體同事資料」即可一鍵同步全體同事的名稱、職能、定位、頭像、專長與個性背景。
+              </p>
+              <textarea
+                value={hrRosterMd}
+                onChange={(e) => onChangeHrRosterMd(e.target.value)}
+                rows={6}
+                placeholder="載入或貼上 HR_COLLEAGUE_ROSTER.md 文本…"
+                style={{ fontFamily: "Consolas, Courier New, monospace", fontSize: "9.5px", width: "100%" }}
+              />
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 6, marginTop: 6 }}>
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={() => onSaveHrRosterMd(hrRosterMd)}
+                >
+                  💾 根據 HR 文本更新全體同事資料 <span>→</span>
                 </button>
               </div>
             </div>
