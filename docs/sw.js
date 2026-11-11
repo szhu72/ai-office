@@ -1,5 +1,5 @@
 // Progressive Web App Service Worker for 無所事事辦公室 — AI Office
-const CACHE_NAME = 'aioffice-pwa-v3';
+const CACHE_NAME = 'aioffice-pwa-v4';
 
 const STATIC_PRECACHE = [
   './',
