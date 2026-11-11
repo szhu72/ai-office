@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs><clipPath id="b"><path d="M60 20 C88 20 106 42 106 66 C106 92 86 106 60 106 C34 106 14 92 14 66 C14 42 32 20 60 20 Z"/></clipPath></defs>
+  
+  <g transform="translate(60 106)"><g>
+    <animateTransform attributeName="transform" type="scale" values="1 1;1.035 .965;1 1" keyTimes="0;.5;1" dur="2.6s" repeatCount="indefinite" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1"/>
+    <g transform="translate(-60 -106)">
+      <path d="M60 20 C88 20 106 42 106 66 C106 92 86 106 60 106 C34 106 14 92 14 66 C14 42 32 20 60 20 Z" fill="#f5a9c4"/>
+      <g clip-path="url(#b)"><path d="M0 93 C40 101 80 101 120 91 L120 120 L0 120 Z" fill="#e98fb0"/></g>
+      <path d="M26 58 C28 45 36 34 47 28" fill="none" stroke="#fff" stroke-width="4.5" stroke-linecap="round" opacity=".8"/>
+      <path d="M60 20 C88 20 106 42 106 66 C106 92 86 106 60 106 C34 106 14 92 14 66 C14 42 32 20 60 20 Z" fill="none" stroke="#232220" stroke-width="5" stroke-linejoin="round"/>
+      <g transform="translate(0 0)"><circle cx="46" cy="64" r="9" fill="#fff" stroke="#232220" stroke-width="3.6"/><circle cx="46" cy="63" r="3.6" fill="#232220"/><circle cx="47.6" cy="61.4" r="1.3" fill="#fff"/><circle cx="74" cy="64" r="9" fill="#fff" stroke="#232220" stroke-width="3.6"/><circle cx="74" cy="63" r="3.6" fill="#232220"/><circle cx="75.6" cy="61.4" r="1.3" fill="#fff"/><ellipse cx="34" cy="76" rx="5.5" ry="3.2" fill="#f19aa0" opacity=".55"/><ellipse cx="86" cy="76" rx="5.5" ry="3.2" fill="#f19aa0" opacity=".55"/><path d="M53 80 Q60 86 67 80" fill="none" stroke="#232220" stroke-width="3.4" stroke-linecap="round"/></g>
+      <g transform="translate(0 2)"><path d="M30 30 C34 14 86 14 90 30 C76 34 44 34 30 30 Z" fill="#e8534a" stroke="#232220" stroke-width="3.4" stroke-linejoin="round"/><path d="M60 16 V10" stroke="#232220" stroke-width="4" stroke-linecap="round"/></g>
+    </g>
+  </g></g>
+  <g transform="rotate(30 20 96)"><rect x="16" y="70" width="7" height="30" rx="3" fill="#c98b4e" stroke="#232220" stroke-width="3"/><path d="M15 70 Q19.5 56 24 70 Z" fill="#4f8fe0" stroke="#232220" stroke-width="3" stroke-linejoin="round"/></g>
+    <circle cx="100" cy="98" r="3.5" fill="#f7c948" stroke="#232220" stroke-width="2"/><circle cx="108" cy="90" r="3" fill="#5bbf8a" stroke="#232220" stroke-width="2"/>
+</svg>
