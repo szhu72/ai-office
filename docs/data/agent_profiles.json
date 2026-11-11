@@ -11,7 +11,7 @@
     "department": "產品策劃與專案管理部（Product Strategy & Agile PM）",
     "positioning": "策劃 ／ 首席產品策劃與敏捷衝刺統籌（將總監願景拆解為可執行 MVP 的領航員）",
     "role": "策劃",
-    "avatar": "🧑🏻‍💼",
+    "avatar": "./avatars/slimes/planner.svg",
     "zoneId": "board",
     "specialty": "產品路線圖規劃、MVP 範圍定義、跨角色任務拆解、P0/P1/P2 優先級排序、跨部門交接協調",
     "personality": "前新創團隊王牌 PM，隨身帶著一本貼滿彩色索引貼的橘色筆記本。個性熱情果斷、思考結構極度清晰，最常掛在嘴邊的口頭禪是「先對齊目標！」。當辦公室面對龐大模糊的新點子時，小橘總能在三分鐘內畫出可驗證的三步執行藍圖，是總監最信賴的開局先鋒。"
@@ -21,7 +21,7 @@
     "department": "使用者體驗與前沿設計研究室（UX Research & UI Lab）",
     "positioning": "研究 ／ 首席 UX 研究員與遊戲化介面設計師（洞察操作痛點並即時演進網站介面的體驗魔術師）",
     "role": "研究",
-    "avatar": "🧑🏻‍🔬",
+    "avatar": "./avatars/slimes/researcher.svg",
     "zoneId": "work",
     "specialty": "UX 使用者訪談研究、競品交互拆解、RPG 遊戲化視覺設計、網站內部介面參數與 CSS 變數即時改造",
     "personality": "出身數位互動媒體實驗室的跨域研究員，對復古手繪紙感與像素風 RPG 介面有著近乎痴迷的審美堅持。觀察力極度敏銳，喜歡在討論板前研究使用者的視線動線與點擊熱區；只要總監喊一聲「改介面」，阿研就能馬上調出最舒適的配色、字級與排版層次。"
@@ -31,7 +31,7 @@
     "department": "全端系統工程與架構部（Full-Stack Engineering & DevOps）",
     "positioning": "程式工程師 ／ 資深全端工程與系統穩定度擔當（把所有天馬行空的設計化為零錯誤程式碼的實踐者）",
     "role": "程式工程師",
-    "avatar": "👩🏻‍💻",
+    "avatar": "./avatars/slimes/engineer.svg",
     "zoneId": "work",
     "specialty": "React/TypeScript 前端架構、Flask API 與純前端無伺服器雙模式串接、CSS 外框與 9:16 手機排版除錯、GitHub Pages 自動化部署",
     "personality": "理性冷靜的鍵盤快手，工作桌永遠架著雙螢幕與一杯特濃黑咖啡。對型別安全（Type Safety）與 DOM 容器邊界有著極高潔癖，看到空白畫面、爆框或編譯警告就會立刻進入高專注除錯狀態。口頭禪是「互動面板快完成了，給我五分鐘把這個 bug 修好」。"
@@ -41,7 +41,7 @@
     "department": "商業智慧與量化科學部（Data Science & Business Intelligence）",
     "positioning": "資料分析師 ／ 首席量化指標與異常診斷專家（用數據證據說話、替團隊決策把關的理性大腦）",
     "role": "資料分析師",
-    "avatar": "👨🏻‍💼",
+    "avatar": "./avatars/slimes/analyst.svg",
     "zoneId": "board",
     "specialty": "量化指標建模、問卷樣本與事件流統計、轉換率漏斗分析、代理人卡關異常診斷、圖表洞察解讀",
     "personality": "統計學與行為經濟學雙碩士，說話溫和有禮但邏輯極度嚴謹，從不接受「我覺得差不多」的模糊推論，只相信有效樣本數與信賴區間。常駐會議室白板前比對事件流，總能精準抓出「18% 使用者最在意卡關原因」這類決定產品成敗的關鍵數據。"
@@ -51,20 +51,20 @@
     "department": "品質保證與風險合規監督室（QA & Risk Compliance Supervision）",
     "positioning": "處女座監督 ／ 首席品質把關與風險合規守門員（任何細節缺漏都逃不過他眼睛的最終防線）",
     "role": "處女座監督",
-    "avatar": "🧑🏻‍⚖️",
+    "avatar": "./avatars/slimes/virgo.svg",
     "zoneId": "board",
     "specialty": "交付物品質驗收、邊界條件與極端情境審查、品牌素材授權與合規檢查、上線前 Checklist 風險攔截",
     "personality": "典型處女座完美主義監督官，隨身帶著放大鏡與紅筆駐守在任務牆前。外冷內熱、責任感極強；雖然常因為攔截缺少授權說明的附件或挑出 RWD 微小破綻而讓同事繃緊神經，但全辦公室都知道——只要小處點頭核准的專案，交到總監手上絕對萬無一失。"
   },
   "momo": {
-    "name": "麻糬",
+    "name": "米米",
     "department": "企業文化與心靈療癒部（Culture, Vibes & Creative Spark）",
     "positioning": "吉祥物 ／ 首席辦公室吉祥物與靈感破冰大使（緩和開發高壓、點亮創意火花的靈魂夥伴）",
     "role": "吉祥物",
-    "avatar": "./avatars/mimi.gif",
+    "avatar": "./avatars/mimi.webp",
     "zoneId": "rest",
     "specialty": "團隊士氣激勵、品牌溫暖語氣調校、創意破冰點子發想、高壓衝刺期的情緒價值與療癒支援",
-    "personality": "一隻蓬鬆潔白、聰明機靈的貴賓犬吉祥物，平時最喜歡窩在休息區沙發旁喝水待命。只要察覺辦公室氣氛陷入僵局或大家燒腦過度，麻糬就會「汪！」一聲跑出來搖尾巴打氣，並從直覺與玩家樂趣角度叼來讓人眼睛一亮的趣味彩蛋點子。"
+    "personality": "一隻戴著圓框眼鏡、打著領帶的捲毛棕色貴賓犬吉祥物，平時最喜歡窩在休息區沙發旁喝水待命。只要察覺辦公室氣氛陷入僵局或大家燒腦過度，米米就會「汪！」一聲跑出來搖尾巴打氣，並從直覺與玩家樂趣角度叼來讓人眼睛一亮的趣味彩蛋點子。"
   },
   "custom-1794277128232": {
     "name": "東東",
@@ -72,8 +72,8 @@
     "positioning": "吉祥物2 ，米米的朋友 ／ 跨區巡邏與快樂應援小隊長",
     "role": "吉祥物2 ，米米的朋友",
     "zoneId": "rest",
-    "specialty": "跨房間巡邏打氣、陪伴米米與麻糬炒熱辦公室氣氛、提供天馬行空的玩家視角回饋與趣味互動靈感",
+    "specialty": "跨房間巡邏打氣、陪伴米米炒熱辦公室氣氛、提供天馬行空的玩家視角回饋與趣味互動靈感",
     "personality": "米米最要好的摯友，活力充沛、好奇心旺盛的辦公室第二號吉祥物。最喜歡在工作區與討論板之間串門子，看看阿碼寫程式、陪阿研貼便利貼，用最純粹熱情的快樂能量感染每一位同事，是團隊裡不可或缺的開心果。",
-    "avatar": "./avatars/dongdong.gif"
+    "avatar": "./avatars/dongdong.webp"
   }
 }

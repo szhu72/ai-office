@@ -1,3 +1,4 @@
+import { enforceAvatars } from "./avatarRegistry";
 import { initialOffice } from "./mockOffice";
 import type { ActivityEvent, Agent, AgentStatus, MeetingSummary, OfficeState, OfficeTask, OfficeWorkspaceMode, ToolRecord, Zone } from "./types";
 
@@ -124,6 +125,7 @@ export class LocalOfficeDataSource implements OfficeDataSource {
         this.persistWorkState();
       }
     }
+    this.enforceAvatarLock();
   }
 
   getSnapshot = (): OfficeState => this.snapshot;
@@ -433,7 +435,16 @@ export class LocalOfficeDataSource implements OfficeDataSource {
         break;
     }
 
+    this.enforceAvatarLock();
     this.listeners.forEach((listener) => listener());
+  };
+
+  /** Avatars come from the repository registry; browser-stored data can never override them. */
+  private enforceAvatarLock = () => {
+    const agents = enforceAvatars(this.snapshot.agents);
+    if (agents === this.snapshot.agents) return;
+    this.snapshot = { ...this.snapshot, agents };
+    this.persistWorkState();
   };
 }
 
