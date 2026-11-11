@@ -3159,3 +3159,10 @@ button.tw-chip:disabled{cursor:default;opacity:.55}
 .tw-run-meta button:hover{border-color:#bb7847;color:#c4621a}
 .tw-card-actions{flex-wrap:wrap}
 @media (max-width:520px){.tw-steps li{grid-template-columns:auto minmax(0,1fr)}.tw-steps time{display:none}}
+/* Keep task cards inside the task wall: grid items default to min-width:auto, so the
+   nowrap prompt line in an expanded timeline used to stretch every card past the wall. */
+.task-wall-cards-grid{grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr))}
+.task-wall-banner-card,.tw-timeline,.tw-run,.tw-run-head,.tw-steps,.tw-steps li{min-width:0}
+.tw-run-head strong{flex:0 0 auto;white-space:nowrap}
+.viewport-mobile-916 .task-wall-cards-grid{grid-template-columns:minmax(0,1fr)}
+@media (max-width:900px){.task-wall-cards-grid{grid-template-columns:minmax(0,1fr)}}
