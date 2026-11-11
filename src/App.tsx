@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
 import { officeDataSource } from "./officeDataSource";
 import { askAgent, askMeetingBrainstorm, askUiEvolve, deleteCustomAgentApi, extractProfileFromSkillMarkdown, fetchAgentProfiles, fetchAvatarOverrides, fetchColleagueSkills, fetchCustomAgents, fetchHrRosterMarkdown, fetchSavedUiPatch, getBrowserApiKey, isGifAvatar, isImageAvatar, resetUiEvolve, saveAgentProfileApi, saveAvatarOverrideApi, saveColleagueSkillApi, saveCustomAgentApi, saveHrRosterMarkdownApi, setBrowserApiKey, uploadAvatarFileApi, type ColleagueSkillInfo, type UiEvolutionPatch } from "./aiClient";
 import MascotAvatar from "./MascotAvatar";
@@ -59,6 +59,20 @@ export interface ThoughtStep {
   text: string;
   at: number;
 }
+
+const isTaskEnded = (task: OfficeTask) => task.status === "已結束" || task.status === "已核准";
+
+/**
+ * A task is "stuck" (卡關) when it is still open and either needs revision, its owner is
+ * blocked / errored, or its most recent AI thought ended in an error.
+ * Used both for the task wall's ⚠ counter/filter and for auto-expanding thought timelines.
+ */
+const isTaskStuck = (task: OfficeTask, agents: Agent[], thoughts: ThoughtRecord[]) => {
+  if (isTaskEnded(task)) return false;
+  const owner = agents.find((agent) => agent.id === task.ownerId);
+  const latest = thoughts.find((t) => t.taskId === task.id);
+  return task.status === "需修改" || owner?.status === "blocked" || owner?.status === "error" || latest?.stage === "發生錯誤";
+};
 
 const withStep = (item: ThoughtRecord, stage: ThoughtRecord["stage"], text: string): ThoughtRecord => ({
   ...item,
@@ -198,6 +212,17 @@ function App() {
   ]);
   // Task wall: which task cards have their AI thought timeline expanded
   const [expandedTasks, setExpandedTasks] = useState<Record<string, boolean>>({});
+  // Auto-expand a task card only when it newly becomes stuck or its AI thought errors.
+  // Cards the director collapses stay collapsed until the task gets stuck again.
+  const prevStuckRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const stuckNow = new Set(office.tasks.filter((task) => isTaskStuck(task, office.agents, thoughts)).map((task) => task.id));
+    const newlyStuck = [...stuckNow].filter((id) => !prevStuckRef.current.has(id));
+    prevStuckRef.current = stuckNow;
+    if (newlyStuck.length) {
+      setExpandedTasks((prev) => ({ ...prev, ...Object.fromEntries(newlyStuck.map((id) => [id, true])) }));
+    }
+  }, [office.tasks, office.agents, thoughts]);
   const scrollToTaskWall = () => {
     document.querySelector(".zone-tasks-banner")?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
@@ -448,11 +473,7 @@ function App() {
     const thoughtId = `th-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`;
     const startedAt = Date.now();
 
-    // Stage 1: Visual reaction on sprite + auto-expand the task card's thought timeline
-    if (options.taskId) {
-      const taskId = options.taskId;
-      setExpandedTasks((prev) => ({ ...prev, [taskId]: true }));
-    }
+    // Stage 1: Visual reaction on sprite + thought record (cards auto-expand only when stuck/errored)
     setThinkingAgents((prev) => ({ ...prev, [agent.id]: "💭 拆解指令中…" }));
     setThoughts((prev) => [
       {
@@ -1885,20 +1906,15 @@ function OfficeScene({
   onSelectThought,
 }: OfficeSceneProps) {
   const [stuckOnly, setStuckOnly] = useState(false);
-  const isTaskEnded = (task: OfficeTask) => task.status === "已結束" || task.status === "已核准";
-  const isTaskStuck = (task: OfficeTask) => {
-    if (isTaskEnded(task)) return false;
-    const owner = office.agents.find((agent) => agent.id === task.ownerId);
-    return task.status === "需修改" || owner?.status === "blocked" || owner?.status === "error";
-  };
+  const isStuck = (task: OfficeTask) => isTaskStuck(task, office.agents, thoughts);
   const openTasks = office.tasks.filter((task) => !isTaskEnded(task));
   const overallProgress = openTasks.length
     ? Math.round(openTasks.reduce((sum, task) => sum + task.progress, 0) / openTasks.length)
     : 100;
-  const stuckCount = office.tasks.filter(isTaskStuck).length;
+  const stuckCount = office.tasks.filter(isStuck).length;
   const runningCount = office.tasks.filter((task) => !isTaskEnded(task) && thinkingAgents[task.ownerId]).length;
   const endedCount = office.tasks.length - openTasks.length;
-  const visibleTasks = stuckOnly && stuckCount > 0 ? office.tasks.filter(isTaskStuck) : office.tasks;
+  const visibleTasks = stuckOnly && stuckCount > 0 ? office.tasks.filter(isStuck) : office.tasks;
   const clock = (at: number) => new Date(at).toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
 
   return (
@@ -1998,7 +2014,7 @@ function OfficeScene({
                     {visibleTasks.map((task) => {
                       const owner = office.agents.find((agent) => agent.id === task.ownerId);
                       const isEnded = isTaskEnded(task);
-                      const stuck = isTaskStuck(task);
+                      const stuck = isStuck(task);
                       const taskThoughts = thoughts.filter((t) => t.taskId === task.id);
                       const expanded = !!expandedTasks[task.id];
                       return (
