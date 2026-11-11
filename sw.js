@@ -1,5 +1,5 @@
 // Progressive Web App Service Worker for 無所事事辦公室 — AI Office
-const CACHE_NAME = 'aioffice-pwa-v2';
+const CACHE_NAME = 'aioffice-pwa-v3';
 
 const STATIC_PRECACHE = [
   './',
@@ -90,7 +90,7 @@ self.addEventListener('fetch', (event) => {
   // Static assets: Stale-while-revalidate
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
-      const fetchPromise = fetch(request).then((networkResponse) => {
+      const fetchPromise = fetch(request, { cache: 'no-cache' }).then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200) {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
