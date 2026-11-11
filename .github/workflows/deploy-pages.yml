@@ -24,15 +24,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install dependencies & build static site
-        run: |
-          npm install
-          npm run build
+      # NOTE: deploy the already-built static site in docs/ (produced by build_pages.py).
+      # Re-running `vite build` on the committed root index.html made Vite rewrite
+      # <link rel="manifest"> to assets/app.webmanifest, which broke start_url/icon
+      # paths and made the PWA uninstallable on Android Chrome.
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
@@ -40,7 +35,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: "./dist"
+          path: "./docs"
 
       - name: Deploy to GitHub Pages
         id: deployment
