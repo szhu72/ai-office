@@ -48,7 +48,24 @@ export interface ThoughtRecord {
   startedAt: number;
   elapsedMs?: number;
   running: boolean;
+  /** Task this thought belongs to; thoughts without a task stay off the task wall. */
+  taskId?: string;
+  /** Stage history, appended (not overwritten) as the thought progresses. */
+  steps?: ThoughtStep[];
 }
+
+export interface ThoughtStep {
+  stage: ThoughtRecord["stage"];
+  text: string;
+  at: number;
+}
+
+const withStep = (item: ThoughtRecord, stage: ThoughtRecord["stage"], text: string): ThoughtRecord => ({
+  ...item,
+  stage,
+  thought: text,
+  steps: [...(item.steps ?? []), { stage, text, at: Date.now() }],
+});
 
 type GamePopup =
   | { kind: "toolbar-menu" }
@@ -150,6 +167,12 @@ function App() {
       startedAt: Date.now() - 42000,
       elapsedMs: 1840,
       running: false,
+      taskId: "launch",
+      steps: [
+        { stage: "拆解問題", text: "拆出三個子問題：使用情境、開發成本、本週可交付範圍。", at: Date.now() - 42000 },
+        { stage: "檢索脈絡", text: "讀取 interview-notes.pdf 與 mvp-scope-v2.md 的痛點排序。", at: Date.now() - 41400 },
+        { stage: "完成推論", text: "先比對訪談痛點與開發成本，把「可視化辦公室＋即時卡關提醒」列為 P0。", at: Date.now() - 40160 },
+      ],
     },
     {
       id: "seed-2",
@@ -165,10 +188,19 @@ function App() {
       startedAt: Date.now() - 19000,
       elapsedMs: 1520,
       running: false,
+      taskId: "prototype",
+      steps: [
+        { stage: "拆解問題", text: "列出上線前必查項目：素材授權、字型授權、隱私說明。", at: Date.now() - 19000 },
+        { stage: "檢索脈絡", text: "逐一比對任務附件 office-wireframe.fig 與 brand-colors.pdf。", at: Date.now() - 18400 },
+        { stage: "完成推論", text: "發現 brand-colors.pdf 沒有附上外部字型授權條款，必須先攔截提醒總監。", at: Date.now() - 17480 },
+      ],
     },
   ]);
-  const [showMonitor, setShowMonitor] = useState(false);
-  const [monitorMinimized, setMonitorMinimized] = useState(false);
+  // Task wall: which task cards have their AI thought timeline expanded
+  const [expandedTasks, setExpandedTasks] = useState<Record<string, boolean>>({});
+  const scrollToTaskWall = () => {
+    document.querySelector(".zone-tasks-banner")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
   const [mobile916, setMobile916] = useState(false);
   const [autoTick, setAutoTick] = useState(0);
   const [uiPatch, setUiPatch] = useState<UiEvolutionPatch | null>(null);
@@ -416,8 +448,11 @@ function App() {
     const thoughtId = `th-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`;
     const startedAt = Date.now();
 
-    // Stage 1: Visual reaction on sprite + thought monitor entry
-    setShowMonitor(true);
+    // Stage 1: Visual reaction on sprite + auto-expand the task card's thought timeline
+    if (options.taskId) {
+      const taskId = options.taskId;
+      setExpandedTasks((prev) => ({ ...prev, [taskId]: true }));
+    }
     setThinkingAgents((prev) => ({ ...prev, [agent.id]: "💭 拆解指令中…" }));
     setThoughts((prev) => [
       {
@@ -433,8 +468,10 @@ function App() {
         model: "連線準備中",
         startedAt,
         running: true,
+        taskId: options.taskId,
+        steps: [{ stage: "拆解問題", text: `正在理解總監指令：「${prompt.slice(0, 48)}」…`, at: startedAt }],
       },
-      ...prev.slice(0, 14),
+      ...prev.slice(0, 39),
     ]);
 
     officeDataSource.dispatch({
@@ -451,7 +488,7 @@ function App() {
     const stageTimer1 = window.setTimeout(() => {
       setThinkingAgents((prev) => (prev[agent.id] ? { ...prev, [agent.id]: "🧠 Gemini 推論中…" } : prev));
       setThoughts((prev) => prev.map((item) => item.id === thoughtId
-        ? { ...item, stage: "呼叫 Gemini", thought: `已載入「${agent.role}」專業視角，正在等待 Gemini 生成方案…` }
+        ? withStep(item, "呼叫 Gemini", `已載入「${agent.role}」專業視角，正在等待 Gemini 生成方案…`)
         : item));
     }, 550);
 
@@ -470,9 +507,7 @@ function App() {
 
     setThoughts((prev) => prev.map((item) => item.id === thoughtId
       ? {
-          ...item,
-          stage: reply.ok ? "完成推論" : "發生錯誤",
-          thought: reply.thought,
+          ...withStep(item, reply.ok ? "完成推論" : "發生錯誤", reply.thought),
           outputPreview: reply.text,
           model: reply.model,
           elapsedMs: reply.elapsedMs,
@@ -535,7 +570,6 @@ function App() {
 
     const thoughtId = `ui-${Date.now()}`;
     const startedAt = Date.now();
-    setShowMonitor(true);
     setSelection({ kind: "agent", id: researcher.id });
     setThinkingAgents((prev) => ({ ...prev, [researcher.id]: "🎨 阿研正在套用並研究 UI 參數…" }));
     setThoughts((prev) => [
@@ -552,8 +586,9 @@ function App() {
         model: "gemini-ui-engine",
         startedAt,
         running: true,
+        steps: [{ stage: "呼叫 Gemini", text: "已先即時套用總監填入的固定欄位參數，正在由阿研生成進階樣式與 UX 評估報告…", at: startedAt }],
       },
-      ...prev.slice(0, 14),
+      ...prev.slice(0, 39),
     ]);
     officeDataSource.dispatch({
       type: "agent.status",
@@ -584,9 +619,7 @@ function App() {
       setUiPatch(merged);
       setThoughts((prev) => prev.map((item) => item.id === thoughtId
         ? {
-            ...item,
-            stage: "完成推論",
-            thought: res.patch?.thought ?? "已完成固有欄位驗證與介面更新。",
+            ...withStep(item, "完成推論", res.patch?.thought ?? "已完成固有欄位驗證與介面更新。"),
             outputPreview: res.patch?.summary ?? `已套用：${fieldSummary}`,
             model: res.patch?.model ?? "gemini",
             elapsedMs: res.patch?.elapsedMs ?? (Date.now() - startedAt),
@@ -605,9 +638,7 @@ function App() {
     } else {
       setThoughts((prev) => prev.map((item) => item.id === thoughtId
         ? {
-            ...item,
-            stage: "完成推論",
-            thought: "固定欄位已直接生效（AI 補充樣式略過）。",
+            ...withStep(item, "完成推論", "固定欄位已直接生效（AI 補充樣式略過）。"),
             outputPreview: `已直接套用欄位：${fieldSummary}`,
             model: "local+fields",
             elapsedMs: Date.now() - startedAt,
@@ -1007,8 +1038,8 @@ function App() {
             <button
               type="button"
               className={`hud-toggle-button ${anyRunning ? "hud-pulsing" : ""}`}
-              onClick={() => { setShowMonitor(true); setMonitorMinimized(false); }}
-              title="開啟 AI 思考狀態監控窗"
+              onClick={scrollToTaskWall}
+              title="前往任務牆查看各任務的 AI 思考時間軸"
             >
               <span className="live-dot" />
               🧠 {anyRunning ? `${Object.keys(thinkingAgents).length} 思考中` : thoughts.length}
@@ -1186,13 +1217,17 @@ function App() {
               onFinishTask={finishTask}
               onOpenAssign={() => setModal("assign")}
               bubbleCycle={bubbleCycle}
+              thoughts={thoughts}
+              expandedTasks={expandedTasks}
+              onToggleTaskExpand={(taskId) => setExpandedTasks((prev) => ({ ...prev, [taskId]: !prev[taskId] }))}
+              onSelectThought={(recordId) => setPopup({ kind: "thought-detail", recordId })}
             />
 
             <div className="scene-footer">
               <div>
                 <span className="footer-indicator" title="Gemini 連線就緒" />
-                <button type="button" onClick={() => { setShowMonitor(true); setMonitorMinimized(false); }}>
-                  🧠 思考監控 ({thoughts.length})
+                <button type="button" onClick={scrollToTaskWall}>
+                  🧠 任務思考 ({thoughts.filter((t) => t.taskId).length})
                 </button>
                 <button
                   type="button"
@@ -1381,18 +1416,6 @@ function App() {
         onOpenAll={() => setPopup({ kind: "activity-log" })}
       />
 
-      {/* Floating Real-Time Thought Monitor Window (Requirement #4) */}
-      {showMonitor && (
-        <ThoughtMonitorWindow
-          thoughts={thoughts}
-          thinkingAgents={thinkingAgents}
-          minimized={monitorMinimized}
-          onMinimize={() => setMonitorMinimized((m) => !m)}
-          onClose={() => setShowMonitor(false)}
-          onSelectThought={(id) => setPopup({ kind: "thought-detail", recordId: id })}
-          onRunRound={runOfficeRound}
-        />
-      )}
 
       {modal && (
         <ActionModal
@@ -1478,7 +1501,7 @@ function App() {
           mobile916={mobile916}
           onToggleMobile916={() => { setMobile916((v) => !v); setPopup(null); }}
           onRunOfficeRound={() => { setPopup(null); runOfficeRound(); }}
-          onOpenMonitor={() => { setShowMonitor(true); setMonitorMinimized(false); setPopup(null); }}
+          onOpenMonitor={() => { setPopup(null); scrollToTaskWall(); }}
           uiPatch={uiPatch}
           uiForm={uiForm}
           onChangeUiForm={setUiForm}
@@ -1839,6 +1862,10 @@ interface OfficeSceneProps {
   onFinishTask: (taskId: string) => void;
   onOpenAssign: () => void;
   bubbleCycle: number;
+  thoughts: ThoughtRecord[];
+  expandedTasks: Record<string, boolean>;
+  onToggleTaskExpand: (taskId: string) => void;
+  onSelectThought: (recordId: string) => void;
 }
 
 function OfficeScene({
@@ -1852,7 +1879,28 @@ function OfficeScene({
   onFinishTask,
   onOpenAssign,
   bubbleCycle,
+  thoughts,
+  expandedTasks,
+  onToggleTaskExpand,
+  onSelectThought,
 }: OfficeSceneProps) {
+  const [stuckOnly, setStuckOnly] = useState(false);
+  const isTaskEnded = (task: OfficeTask) => task.status === "已結束" || task.status === "已核准";
+  const isTaskStuck = (task: OfficeTask) => {
+    if (isTaskEnded(task)) return false;
+    const owner = office.agents.find((agent) => agent.id === task.ownerId);
+    return task.status === "需修改" || owner?.status === "blocked" || owner?.status === "error";
+  };
+  const openTasks = office.tasks.filter((task) => !isTaskEnded(task));
+  const overallProgress = openTasks.length
+    ? Math.round(openTasks.reduce((sum, task) => sum + task.progress, 0) / openTasks.length)
+    : 100;
+  const stuckCount = office.tasks.filter(isTaskStuck).length;
+  const runningCount = office.tasks.filter((task) => !isTaskEnded(task) && thinkingAgents[task.ownerId]).length;
+  const endedCount = office.tasks.length - openTasks.length;
+  const visibleTasks = stuckOnly && stuckCount > 0 ? office.tasks.filter(isTaskStuck) : office.tasks;
+  const clock = (at: number) => new Date(at).toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+
   return (
     <div className="office-map">
       <div className="map-grid" aria-hidden="true" />
@@ -1926,14 +1974,37 @@ function OfficeScene({
               {/* 01 看板：橫幅比例等於頁面寬度，含結束任務功能 */}
               {zone.kind === "tasks" && (
                 <div className="task-wall-banner-body">
+                  <div className="tw-overview" onClick={(e) => e.stopPropagation()}>
+                    <div className="tw-overview-progress" title="未結束任務的平均進度">
+                      <span className="tw-overview-label">總進度</span>
+                      <span className="tw-bar"><i style={{ width: `${overallProgress}%` }} /></span>
+                      <strong>{overallProgress}%</strong>
+                    </div>
+                    <div className="tw-overview-chips">
+                      <button
+                        type="button"
+                        className={`tw-chip tw-chip-stuck ${stuckOnly && stuckCount > 0 ? "tw-chip-active" : ""}`}
+                        disabled={stuckCount === 0}
+                        onClick={() => setStuckOnly((v) => !v)}
+                        title={stuckCount ? (stuckOnly ? "顯示全部任務" : "只顯示卡關任務") : "目前沒有卡關任務"}
+                      >
+                        ⚠ 卡關 {stuckCount}{stuckOnly && stuckCount > 0 ? " · 篩選中 ×" : ""}
+                      </button>
+                      <span className={`tw-chip ${runningCount ? "tw-chip-running" : ""}`} title="負責人正在 AI 推論的任務">⏳ 推論 {runningCount}</span>
+                      <span className="tw-chip" title="已結束或已核准">✓ 完成 {endedCount}</span>
+                    </div>
+                  </div>
                   <div className="task-wall-cards-grid">
-                    {office.tasks.map((task) => {
+                    {visibleTasks.map((task) => {
                       const owner = office.agents.find((agent) => agent.id === task.ownerId);
-                      const isEnded = task.status === "已結束" || task.status === "已核准";
+                      const isEnded = isTaskEnded(task);
+                      const stuck = isTaskStuck(task);
+                      const taskThoughts = thoughts.filter((t) => t.taskId === task.id);
+                      const expanded = !!expandedTasks[task.id];
                       return (
                         <div
                           key={task.id}
-                          className={`task-wall-banner-card ${isEnded ? "task-ended" : ""}`}
+                          className={`task-wall-banner-card ${isEnded ? "task-ended" : ""} ${stuck ? "task-stuck" : ""} ${expanded ? "tw-expanded" : ""}`}
                           onClick={(e) => {
                             e.stopPropagation();
                             onSelectTask(task.id);
@@ -1950,12 +2021,54 @@ function OfficeScene({
                             <span className={`task-status-pill status-${task.status}`}>{task.status}</span>
                           </div>
                           <p className="tw-card-goal">{task.goal}</p>
+                          <span className="tw-bar tw-card-bar" title={`進度 ${task.progress}%`}><i style={{ width: `${task.progress}%` }} /></span>
                           {owner && !isEnded && (
                             <div className={`tw-live ${thinkingAgents[owner.id] ? "tw-live-running" : ""}`}>
                               <span className="tw-live-stage">
                                 {thinkingAgents[owner.id] ? `⏳ ${thinkingAgents[owner.id]}` : statusNames[owner.status]}
                               </span>
                               <span className="tw-live-text">💭 {getDynamicBubble(owner, office, thinkingAgents[owner.id], bubbleCycle)}</span>
+                            </div>
+                          )}
+                          {expanded && (
+                            <div className="tw-timeline" onClick={(e) => e.stopPropagation()}>
+                              {taskThoughts.length === 0 ? (
+                                <p className="tw-timeline-empty">這個任務還沒有 AI 思考紀錄。指派或補充資料後，推論步驟會出現在這裡。</p>
+                              ) : (
+                                taskThoughts.map((record) => {
+                                  const steps = record.steps?.length
+                                    ? record.steps
+                                    : [{ stage: record.stage, text: record.thought, at: record.startedAt }];
+                                  const sec = record.running
+                                    ? ((Date.now() - record.startedAt) / 1000).toFixed(1)
+                                    : ((record.elapsedMs ?? 0) / 1000).toFixed(1);
+                                  return (
+                                    <div key={record.id} className={`tw-run ${record.running ? "tw-run-running" : ""} ${record.stage === "發生錯誤" ? "tw-run-error" : ""}`}>
+                                      <div className="tw-run-head">
+                                        <span className="inline-avatar"><AvatarView avatar={record.avatar} role={record.role} /></span>
+                                        <strong>{record.agentName}</strong>
+                                        <span className="tw-run-prompt" title={record.prompt}>指令：{record.prompt}</span>
+                                      </div>
+                                      <ol className="tw-steps">
+                                        {steps.map((step, index) => {
+                                          const last = index === steps.length - 1;
+                                          return (
+                                            <li key={`${step.at}-${index}`} className={last && record.running ? "tw-step-live" : step.stage === "發生錯誤" ? "tw-step-error" : ""}>
+                                              <time>{clock(step.at)}</time>
+                                              <span className="tw-step-stage">{last && record.running ? `⏳ ${step.stage}` : step.stage}</span>
+                                              <span className="tw-step-text">{step.text}</span>
+                                            </li>
+                                          );
+                                        })}
+                                      </ol>
+                                      <div className="tw-run-meta">
+                                        <span>{record.model} · {sec}s</span>
+                                        <button type="button" onClick={() => onSelectThought(record.id)}>完整輸出 ↗</button>
+                                      </div>
+                                    </div>
+                                  );
+                                })
+                              )}
                             </div>
                           )}
                           <div className="tw-card-bottom">
@@ -1969,6 +2082,18 @@ function OfficeScene({
                               <span className="tw-card-due">· {task.due}</span>
                             </div>
                             <div className="tw-card-actions">
+                              <button
+                                type="button"
+                                className={`tw-expand-btn ${expanded ? "tw-expand-on" : ""}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onToggleTaskExpand(task.id);
+                                }}
+                                aria-expanded={expanded}
+                                title={expanded ? "收合 AI 思考時間軸" : "展開 AI 思考時間軸"}
+                              >
+                                🧠 {taskThoughts.length} {expanded ? "▾" : "▸"}
+                              </button>
                               {!isEnded ? (
                                 <button
                                   type="button"
@@ -2521,88 +2646,6 @@ function ActivityFeed({
 }
 
 /* ============================================================================
- * Requirement #4: Real-time AI Thought & Operation Monitor Window (HUD)
- * ========================================================================== */
-function ThoughtMonitorWindow({
-  thoughts,
-  thinkingAgents,
-  minimized,
-  onMinimize,
-  onClose,
-  onSelectThought,
-  onRunRound,
-}: {
-  thoughts: ThoughtRecord[];
-  thinkingAgents: Record<string, string>;
-  minimized: boolean;
-  onMinimize: () => void;
-  onClose: () => void;
-  onSelectThought: (id: string) => void;
-  onRunRound: () => void;
-}) {
-  const runningCount = Object.keys(thinkingAgents).length;
-  return (
-    <aside className={`thought-monitor ${minimized ? "thought-monitor-min" : ""}`} aria-label="AI 思考狀態監控窗">
-      <div className="thought-monitor-bar" onClick={onMinimize}>
-        <div className="thought-monitor-title">
-          <span className={`monitor-led ${runningCount ? "led-busy" : "led-ready"}`} />
-          <strong>🧠 AI 思考與運作監控窗</strong>
-          <span className="monitor-badge">{runningCount ? `${runningCount} 位推論中` : "IDLE · 待命"}</span>
-        </div>
-        <div className="thought-monitor-controls" onClick={(e) => e.stopPropagation()}>
-          <button type="button" title="推進一回合" onClick={onRunRound}>⚡</button>
-          <button type="button" title={minimized ? "展開" : "縮小"} onClick={onMinimize}>{minimized ? "▢" : "—"}</button>
-          <button type="button" title="隱藏監控窗" onClick={onClose}>×</button>
-        </div>
-      </div>
-
-      {!minimized && (
-        <div className="thought-monitor-body">
-          <div className="thought-stage-pipeline">
-            <span className={runningCount ? "stage-on" : ""}>01 拆解指令</span>
-            <i>→</i>
-            <span className={runningCount ? "stage-on" : ""}>02 載入角色記憶</span>
-            <i>→</i>
-            <span className={runningCount ? "stage-on" : ""}>03 Gemini 推論</span>
-            <i>→</i>
-            <span>04 寫回辦公室</span>
-          </div>
-
-          <div className="thought-list">
-            {thoughts.map((item) => {
-              const liveSec = item.running
-                ? ((Date.now() - item.startedAt) / 1000).toFixed(1)
-                : ((item.elapsedMs ?? 1200) / 1000).toFixed(1);
-              return (
-                <button
-                  type="button"
-                  key={item.id}
-                  className={`thought-item ${item.running ? "thought-item-running" : ""}`}
-                  onClick={() => onSelectThought(item.id)}
-                >
-                  <div className="thought-item-top">
-                    <span className="thought-who"><span className="inline-avatar"><AvatarView avatar={item.avatar} role={item.role} /></span> <strong>{item.agentName}</strong> <small>· {item.role}</small></span>
-                    <span className={`thought-stage-chip ${item.running ? "chip-running" : item.stage === "發生錯誤" ? "chip-error" : ""}`}>
-                      {item.running ? `⏳ ${item.stage}` : `✓ ${item.stage}`}
-                    </span>
-                  </div>
-                  <div className="thought-prompt">指令：{item.prompt}</div>
-                  <div className="thought-reasoning">💭 {item.thought}</div>
-                  <div className="thought-meta">
-                    <span>模型：{item.model}</span>
-                    <span>耗時：{liveSec}s · 點擊展開 ↗</span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </aside>
-  );
-}
-
-/* ============================================================================
  * Requirement #2 & #3: Game-Style Popup Modal for Every Button & Room
  * ========================================================================== */
 function GamePopupModal({
@@ -2940,8 +2983,8 @@ function GamePopupModal({
                 }}
               >
                 <span className="toolbar-menu-icon">🧠</span>
-                <strong>AI 思考監控窗 ({thoughts.length})</strong>
-                <small>開啟即時推論階段與耗時 HUD</small>
+                <strong>任務思考時間軸 ({thoughts.filter((t) => t.taskId).length})</strong>
+                <small>前往任務牆，展開任務卡查看 AI 推論步驟</small>
               </button>
 
               <button
@@ -4226,13 +4269,17 @@ function GamePopupModal({
               <p>{rec.prompt}</p>
             </div>
             <div className="rpg-thought-box">
-              <strong>💭 內心思考：</strong>
-              <p>{rec.thought}</p>
+              <strong>💭 思考步驟：</strong>
+              {(rec.steps?.length ? rec.steps : [{ stage: rec.stage, text: rec.thought, at: rec.startedAt }]).map((step, index) => (
+                <p key={`${step.at}-${index}`}>
+                  <code>{new Date(step.at).toLocaleTimeString("zh-TW", { hour12: false })}</code> <strong>{step.stage}</strong> — {step.text}
+                </p>
+              ))}
             </div>
             <div className="rpg-output-full">{rec.outputPreview || "（推論進行中…）"}</div>
             <div className="modal-actions">
               <button type="button" className="cancel-button" onClick={onClose}>關閉</button>
-              <button type="button" className="primary-button" onClick={() => onRunAgent(ag, `請延續你剛才的想法「${rec.thought}」，再往下推演一步具體行動。`)}>
+              <button type="button" className="primary-button" onClick={() => onRunAgent(ag, `請延續你剛才的想法「${rec.thought}」，再往下推演一步具體行動。`, undefined, rec.taskId)}>
                 🔄 繼續思考 <span>→</span>
               </button>
             </div>
