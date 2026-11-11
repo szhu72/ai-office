@@ -1,5 +1,5 @@
 // Progressive Web App Service Worker for 無所事事辦公室 — AI Office
-const CACHE_NAME = 'aioffice-pwa-v1';
+const CACHE_NAME = 'aioffice-pwa-v2';
 
 const STATIC_PRECACHE = [
   './',
@@ -62,6 +62,27 @@ self.addEventListener('fetch', (event) => {
         const cachedResponse = await cache.match('./index.html') || await cache.match('./');
         return cachedResponse;
       })
+    );
+    return;
+  }
+
+  // Manifest & icons: network-first so installability checks and the logo are never stale
+  if (
+    url.pathname.endsWith('/manifest.webmanifest') ||
+    url.pathname.includes('/icons/') ||
+    url.pathname.endsWith('/favicon.png') ||
+    url.pathname.endsWith('/apple-touch-icon.png')
+  ) {
+    event.respondWith(
+      fetch(request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const copy = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          }
+          return networkResponse;
+        })
+        .catch(() => caches.match(request))
     );
     return;
   }
