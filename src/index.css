@@ -27,7 +27,7 @@
 * { box-sizing: border-box; }
 
 body {
-  min-width: 1080px;
+  min-width: 0; /* was 1080px: forced a horizontal scroll on 821–1079px screens (tablets, narrow windows) */
   min-height: 100vh;
   margin: 0;
   background:
@@ -3166,3 +3166,54 @@ button.tw-chip:disabled{cursor:default;opacity:.55}
 .tw-run-head strong{flex:0 0 auto;white-space:nowrap}
 .viewport-mobile-916 .task-wall-cards-grid{grid-template-columns:minmax(0,1fr)}
 @media (max-width:900px){.task-wall-cards-grid{grid-template-columns:minmax(0,1fr)}}
+
+/* ============================================================================
+ * Responsive polish: no mid-word wraps on short labels, consistent pills/buttons
+ * ========================================================================== */
+/* Task card status label had no rule at all and rendered at 18px; match the other pills */
+.task-status-pill{flex:0 0 auto;display:inline-flex;align-items:center;height:19px;padding:0 7px;border:1px solid #dbe8d9;border-radius:2px;background:#eff5ec;color:#4f7a52;font-size:9px;font-weight:700;line-height:1;white-space:nowrap}
+.task-status-pill.status-待審核{border-color:#f0d5b0;background:#fdf3e4;color:#b86a14}
+.task-status-pill.status-需修改{border-color:#efc2b5;background:#fbe9e3;color:#b5442e}
+.task-status-pill.status-已核准,.task-status-pill.status-已結束{border-color:#ddd8cc;background:#f3f1ea;color:#7d7a70}
+.tw-card-top{align-items:center;gap:8px}
+.tw-card-title-group{min-width:0}
+
+/* The 🧠 toolbar button used a 3px radius while every other toolbar button uses 10px */
+.hud-toggle-button{border-radius:10px}
+
+/* Short buttons/labels should never break mid-word (「任務思／考」「更換頭／像」) */
+.scene-footer button,.hero-util-btn,.key-chip,.tw-chip,.tw-expand-btn,.tw-finish-btn,.task-banner-assign-btn,
+.secondary-top-button,.hud-toggle-button,.assign-button,.status-pill,.zone-live,.task-wall-count{white-space:nowrap}
+.scene-footer{flex-wrap:wrap;gap:6px}
+.scene-footer > div,.scene-footer-actions{flex-wrap:wrap;gap:6px}
+.hero-utility-actions{flex-wrap:wrap}
+.hero-util-btn{flex:1 1 auto;min-width:max-content}
+
+/* Balance multi-line bubbles/blurbs so a lone character is not left on the last line */
+.speech-bubble,.hero-bubble-text,.tw-card-goal,.task-wall-subtitle,.tw-live-text{text-wrap:balance}
+
+/* Phone: the 3 zones under the task wall left 休息區 alone at half width */
+@media (max-width: 820px){
+  .room-grid > .zone-card:last-child:nth-child(even){grid-column:1 / -1 !important}
+}
+
+/* Zone titles and task-card owner/due never break mid-word */
+.zone-label h2,.tw-card-owner span,.tw-card-due{white-space:nowrap}
+.zone-label{min-width:0}
+.tw-card-bottom{flex-wrap:wrap;row-gap:5px}
+.tw-card-actions{margin-left:auto}
+
+/* Medium widths (821–1250px): toolbar used to wrap into 3 ragged rows with 工具列/派任務
+   dangling. Row 1 = brand + 工具列/派任務, row 2 = the full tool row, wrapping cleanly. */
+@media (min-width: 821px) and (max-width: 1250px){
+  .topbar{flex-wrap:wrap;row-gap:8px}
+  .topbar-right{display:contents}
+  .topbar-compact-actions{order:1;margin-left:auto}
+  .topbar-desktop-tools{order:2;flex:1 0 100%}
+}
+/* 821–1100px: give the office map more room than the fixed 350px side panel allowed */
+@media (min-width: 821px) and (max-width: 1100px){
+  .workspace-deck{grid-template-columns:minmax(0,1fr) 300px;gap:12px}
+}
+/* Tool-status bubbles keep 「⚡ 正在執行」 together so they wrap as 「⚡ 正在執行 / task.update」 */
+.bubble-keep{white-space:nowrap}

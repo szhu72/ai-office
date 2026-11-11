@@ -2212,6 +2212,10 @@ function AgentSprite({
             {thinkingStage}
             <i className="thinking-dots"><b>.</b><b>.</b><b>.</b></i>
           </>
+        ) : dialogueText.startsWith("⚡ 正在執行 ") ? (
+          <>
+            <span className="bubble-keep">⚡ 正在執行</span> {dialogueText.slice("⚡ 正在執行 ".length)}
+          </>
         ) : dialogueText}
       </span>
       <span className="sprite-figure">
