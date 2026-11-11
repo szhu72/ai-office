@@ -3217,3 +3217,10 @@ button.tw-chip:disabled{cursor:default;opacity:.55}
 }
 /* Tool-status bubbles keep 「⚡ 正在執行」 together so they wrap as 「⚡ 正在執行 / task.update」 */
 .bubble-keep{white-space:nowrap}
+
+/* Avatars are locked to the repository registry (src/avatarRegistry.ts) */
+.avatar-locked-row{align-items:center}
+.avatar-locked-note{flex:1 1 auto;min-width:0;color:#6f6c62;font-size:10px;font-weight:500;line-height:1.5}
+/* The map sprite frame sets image-rendering:pixelated (inherited); vector slimes and
+   photo WebPs should stay smooth. Only legacy pixel-art GIFs keep the crisp look. */
+.custom-avatar-img:not(.avatar-gif-animated){image-rendering:auto}

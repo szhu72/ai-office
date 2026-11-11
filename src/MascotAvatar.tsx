@@ -49,7 +49,7 @@ export default function MascotAvatar() {
         className={`mascot-pixel-canvas${loaded ? " avatar-visible" : ""}`}
         width={24}
         height={24}
-        aria-label="依麻糬參考照製作的貴賓狗像素風頭像"
+        aria-label="依米米參考照製作的貴賓狗像素風頭像"
         role="img"
       />
     </>

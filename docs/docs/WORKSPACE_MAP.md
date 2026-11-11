@@ -66,8 +66,8 @@ flowchart TD
 | `engineer` | **阿碼（工程師）** | [`office-engineer-ama/SKILL.md`](file:///d:/AI/.agents/skills/office-engineer-ama/SKILL.md) | React/TS 前端、Flask API、9:16 手機排版與部署 |
 | `analyst` | **數據（分析師）** | [`office-analyst-shuju/SKILL.md`](file:///d:/AI/.agents/skills/office-analyst-shuju/SKILL.md) | 問卷統計、事件流漏斗、代理人卡關異常數據診斷 |
 | `virgo` | **小處（處女座監督）** | [`office-supervisor-xiaochu/SKILL.md`](file:///d:/AI/.agents/skills/office-supervisor-xiaochu/SKILL.md) | 驗收把關、素材授權審查、上線前 Checklist 攔截 |
-| `momo` | **麻糬（吉祥物）** | [`office-mascot-mochi/SKILL.md`](file:///d:/AI/.agents/skills/office-mascot-mochi/SKILL.md) | 團隊士氣激勵、品牌溫暖語氣、破冰與療癒支援 |
-| `custom-1794277128232` | **東東（吉祥物 2）** | [`office-colleague-custom-1794277128232/SKILL.md`](file:///d:/AI/.agents/skills/office-colleague-custom-1794277128232/SKILL.md) | 跨區巡邏打氣、陪伴米米與麻糬炒熱氣氛 |
+| `momo` | **米米（吉祥物）** | [`office-mascot-mochi/SKILL.md`](file:///d:/AI/.agents/skills/office-mascot-mochi/SKILL.md) | 團隊士氣激勵、品牌溫暖語氣、破冰與療癒支援 |
+| `custom-1794277128232` | **東東（吉祥物 2）** | [`office-colleague-custom-1794277128232/SKILL.md`](file:///d:/AI/.agents/skills/office-colleague-custom-1794277128232/SKILL.md) | 跨區巡邏打氣、陪伴米米炒熱氣氛 |
 
 ---
 

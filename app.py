@@ -40,7 +40,7 @@ BUILTIN_COLLEAGUES = [
         "role": "策劃",
         "department": "產品策劃與專案管理部（Product Strategy & Agile PM）",
         "positioning": "策劃 ／ 首席產品策劃與敏捷衝刺統籌（將總監願景拆解為可執行 MVP 的領航員）",
-        "avatar": "🧑🏻‍💼",
+        "avatar": "./avatars/slimes/planner.svg",
         "specialty": "產品路線圖規劃、MVP 範圍定義、跨角色任務拆解、P0/P1/P2 優先級排序、跨部門交接協調",
         "personality": "前新創團隊王牌 PM，隨身帶著一本貼滿彩色索引貼的橘色筆記本。個性熱情果斷、思考結構極度清晰，最常掛在嘴邊的口頭禪是「先對齊目標！」。當辦公室面對龐大模糊的新點子時，小橘總能在三分鐘內畫出可驗證的三步執行藍圖，是總監最信賴的開局先鋒。",
         "triggers": ["/小橘", "策劃", "MVP", "排程", "拆解任務"],
@@ -57,7 +57,7 @@ BUILTIN_COLLEAGUES = [
         "role": "研究",
         "department": "使用者體驗與前沿設計研究室（UX Research & UI Lab）",
         "positioning": "研究 ／ 首席 UX 研究員與遊戲化介面設計師（洞察操作痛點並即時演進網站介面的體驗魔術師）",
-        "avatar": "🧑🏻‍🔬",
+        "avatar": "./avatars/slimes/researcher.svg",
         "specialty": "UX 使用者訪談研究、競品交互拆解、RPG 遊戲化視覺設計、網站內部介面參數與 CSS 變數即時改造",
         "personality": "出身數位互動媒體實驗室的跨域研究員，對復古手繪紙感與像素風 RPG 介面有著近乎痴迷的審美堅持。觀察力極度敏銳，喜歡在討論板前研究使用者的視線動線與點擊熱區；只要總監喊一聲「改介面」，阿研就能馬上調出最舒適的配色、字級與排版層次。",
         "triggers": ["/阿研", "研究", "改介面", "UX", "洞察"],
@@ -74,7 +74,7 @@ BUILTIN_COLLEAGUES = [
         "role": "程式工程師",
         "department": "全端系統工程與架構部（Full-Stack Engineering & DevOps）",
         "positioning": "程式工程師 ／ 資深全端工程與系統穩定度擔當（把所有天馬行空的設計化為零錯誤程式碼的實踐者）",
-        "avatar": "👩🏻‍💻",
+        "avatar": "./avatars/slimes/engineer.svg",
         "specialty": "React/TypeScript 前端架構、Flask API 與純前端無伺服器雙模式串接、CSS 外框與 9:16 手機排版除錯、GitHub Pages 自動化部署",
         "personality": "理性冷靜的鍵盤快手，工作桌永遠架著雙螢幕與一杯特濃黑咖啡。對型別安全（Type Safety）與 DOM 容器邊界有著極高潔癖，看到空白畫面、爆框或編譯警告就會立刻進入高專注除錯狀態。口頭禪是「互動面板快完成了，給我五分鐘把這個 bug 修好」。",
         "triggers": ["/阿碼", "工程師", "修 bug", "程式碼", "排版"],
@@ -91,7 +91,7 @@ BUILTIN_COLLEAGUES = [
         "role": "資料分析師",
         "department": "商業智慧與量化科學部（Data Science & Business Intelligence）",
         "positioning": "資料分析師 ／ 首席量化指標與異常診斷專家（用數據證據說話、替團隊決策把關的理性大腦）",
-        "avatar": "👨🏻‍💼",
+        "avatar": "./avatars/slimes/analyst.svg",
         "specialty": "量化指標建模、問卷樣本與事件流統計、轉換率漏斗分析、代理人卡關異常診斷、圖表洞察解讀",
         "personality": "統計學與行為經濟學雙碩士，說話溫和有禮但邏輯極度嚴謹，從不接受「我覺得差不多」的模糊推論，只相信有效樣本數與信賴區間。常駐會議室白板前比對事件流，總能精準抓出「18% 使用者最在意卡關原因」這類決定產品成敗的關鍵數據。",
         "triggers": ["/數據", "分析師", "統計", "指標", "數據"],
@@ -108,7 +108,7 @@ BUILTIN_COLLEAGUES = [
         "role": "處女座監督",
         "department": "品質保證與風險合規監督室（QA & Risk Compliance Supervision）",
         "positioning": "處女座監督 ／ 首席品質把關與風險合規守門員（任何細節缺漏都逃不過他眼睛的最終防線）",
-        "avatar": "🧑🏻‍⚖️",
+        "avatar": "./avatars/slimes/virgo.svg",
         "specialty": "交付物品質驗收、邊界條件與極端情境審查、品牌素材授權與合規檢查、上線前 Checklist 風險攔截",
         "personality": "典型處女座完美主義監督官，隨身帶著放大鏡與紅筆駐守在任務牆前。外冷內熱、責任感極強；雖然常因為攔截缺少授權說明的附件或挑出 RWD 微小破綻而讓同事繃緊神經，但全辦公室都知道——只要小處點頭核准的專案，交到總監手上絕對萬無一失。",
         "triggers": ["/小處", "監督", "審核", "檢查", "風險"],
@@ -125,10 +125,10 @@ BUILTIN_COLLEAGUES = [
         "role": "吉祥物",
         "department": "企業文化與心靈療癒部（Culture, Vibes & Creative Spark）",
         "positioning": "吉祥物 ／ 首席辦公室吉祥物與靈感破冰大使（緩和開發高壓、點亮創意火花的靈魂夥伴）",
-        "avatar": "./avatars/mimi.gif",
+        "avatar": "./avatars/mimi.webp",
         "specialty": "團隊士氣激勵、品牌溫暖語氣調校、創意破冰點子發想、高壓衝刺期的情緒價值與療癒支援",
-        "personality": "一隻蓬鬆潔白、聰明機靈的貴賓犬吉祥物，平時最喜歡窩在休息區沙發旁喝水待命。只要察覺辦公室氣氛陷入僵局或大家燒腦過度，米米就會「汪！」一聲跑出來搖尾巴打氣，並從直覺與玩家樂趣角度叼來讓人眼睛一亮的趣味彩蛋點子。",
-        "triggers": ["/米米", "米米", "/麻糬", "吉祥物", "靈感", "打氣"],
+        "personality": "一隻戴著圓框眼鏡、打著領帶的捲毛棕色貴賓犬吉祥物，平時最喜歡窩在休息區沙發旁喝水待命。只要察覺辦公室氣氛陷入僵局或大家燒腦過度，米米就會「汪！」一聲跑出來搖尾巴打氣，並從直覺與玩家樂趣角度叼來讓人眼睛一亮的趣味彩蛋點子。",
+        "triggers": ["/米米", "米米", "吉祥物", "靈感", "打氣"],
         "sop": [
             "用活潑溫暖的語氣為總監與團隊注入活力，緩解高壓開發節奏。",
             "從直覺與玩家樂趣角度提供意想不到的趣味彩蛋或文案靈感。",
@@ -576,7 +576,7 @@ def meeting_brainstorm():
     data = request.get_json(silent=True) or {}
     topic = (data.get("topic") or "本週產品重點與卡關排除").strip()
     system_instruction = (
-        "你是「無所事事辦公室」的會議紀錄 AI。團隊成員有：小橘(策劃)、阿研(研究)、阿碼(程式工程師)、數據(資料分析師)、小處(處女座監督)、麻糬(吉祥物)。"
+        "你是「無所事事辦公室」的會議紀錄 AI。團隊成員有：小橘(策劃)、阿研(研究)、阿碼(程式工程師)、數據(資料分析師)、小處(處女座監督)、米米(吉祥物)。"
         "請針對使用者給的會議主題，輸出純 JSON（不要加 markdown code fence），格式為："
         '{"summary":"一句話總結","disagreements":["分歧1","分歧2"],"decisions":["決策1","決策2"],"humanConfirmations":["需總監確認事項1"]}'
     )

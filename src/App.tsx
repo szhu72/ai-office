@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
 import { officeDataSource } from "./officeDataSource";
-import { askAgent, askMeetingBrainstorm, askUiEvolve, deleteCustomAgentApi, extractProfileFromSkillMarkdown, fetchAgentProfiles, fetchAvatarOverrides, fetchColleagueSkills, fetchCustomAgents, fetchHrRosterMarkdown, fetchSavedUiPatch, getBrowserApiKey, isGifAvatar, isImageAvatar, resetUiEvolve, saveAgentProfileApi, saveAvatarOverrideApi, saveColleagueSkillApi, saveCustomAgentApi, saveHrRosterMarkdownApi, setBrowserApiKey, uploadAvatarFileApi, type ColleagueSkillInfo, type UiEvolutionPatch } from "./aiClient";
+import { askAgent, askMeetingBrainstorm, askUiEvolve, deleteCustomAgentApi, extractProfileFromSkillMarkdown, fetchAgentProfiles, fetchColleagueSkills, fetchCustomAgents, fetchHrRosterMarkdown, fetchSavedUiPatch, getBrowserApiKey, isGifAvatar, isImageAvatar, resetUiEvolve, saveAgentProfileApi, saveColleagueSkillApi, saveCustomAgentApi, saveHrRosterMarkdownApi, setBrowserApiKey, type ColleagueSkillInfo, type UiEvolutionPatch } from "./aiClient";
 import MascotAvatar from "./MascotAvatar";
+import { LOCKED_AVATARS, pickAvatarFor } from "./avatarRegistry";
 import type {
   ActivityEvent,
   Agent,
@@ -103,24 +104,8 @@ type GamePopup =
   | { kind: "ui-studio" }
   | { kind: "agent-create" }
   | { kind: "agent-edit"; agentId: string }
-  | { kind: "avatar-picker"; agentId: string }
   | { kind: "skill-viewer"; agentId?: string }
   | { kind: "api-key" };
-
-const AVATAR_PRESETS = [
-  "💼", "🔬", "👩🏻‍💻", "👨🏻‍💼", "‍⚖️", "🕵🏻‍♂️", "🧙🏻‍♀️", "🦸🏻‍♂️",
-  "👩🏻‍🎨", "🚀", "🥷🏻", "🤖", "🦊", "🐱", "🐼", "🦉",
-  "🦁", "🐸", "🐶", "🦄", "👾", "🎮", "💎", "⚡",
-];
-
-export const GIF_AVATAR_PRESETS = [
-  { url: "./avatars/mimi.gif", label: "🐩 米米 (專屬動態動畫)", role: "吉祥物" },
-  { url: "./avatars/dongdong.gif", label: "🐕 東東 (專屬動態動畫)", role: "吉祥物" },
-  { url: "./avatars/dongdong_walk.gif", label: "🐕 東東 (像素散步)", role: "吉祥物" },
-  { url: "./avatars/mochi_cheer.gif", label: "🐩 麻糬 (像素歡呼)", role: "吉祥物" },
-  { url: "./avatars/cat_typing.gif", label: "🐱 橘貓 (瘋狂打字)", role: "策劃/開發" },
-  { url: "./avatars/robot_pulse.gif", label: "🤖 機器人 (信號心跳)", role: "工程師/數據" },
-];
 
 function AvatarView({ avatar, role }: { avatar: string; role?: string }) {
   if (isImageAvatar(avatar)) {
@@ -171,7 +156,7 @@ function App() {
       id: "seed-1",
       agentId: "planner",
       agentName: "小橘",
-      avatar: "🧑🏻‍💼",
+      avatar: LOCKED_AVATARS.planner,
       role: "策劃",
       prompt: "梳理本週 MVP 優先順序",
       stage: "完成推論",
@@ -192,7 +177,7 @@ function App() {
       id: "seed-2",
       agentId: "virgo",
       agentName: "小處",
-      avatar: "🧑🏻‍⚖️",
+      avatar: LOCKED_AVATARS.virgo,
       role: "處女座監督",
       prompt: "檢查原型上線前合規與素材授權",
       stage: "完成推論",
@@ -259,7 +244,7 @@ function App() {
     role: "",
     department: "",
     positioning: "",
-    avatar: "🧑🏻‍💼",
+    avatar: "./avatars/slimes/planner.svg",
     zoneId: "work",
     status: "thinking" as AgentStatus,
     bubble: "",
@@ -314,10 +299,6 @@ function App() {
       const profiles = await fetchAgentProfiles();
       if (Object.keys(profiles).length) {
         officeDataSource.dispatch({ type: "agent.hydrateProfiles", profiles });
-      }
-      const overrides = await fetchAvatarOverrides();
-      if (Object.keys(overrides).length) {
-        officeDataSource.dispatch({ type: "agent.hydrateAvatars", avatars: overrides });
       }
       const skills = await fetchColleagueSkills();
       setSkillsMap(skills);
@@ -675,7 +656,7 @@ function App() {
     const role = newAgentForm.role.trim() || "專案顧問";
     const department = newAgentForm.department.trim() || `${role}專業部門`;
     const positioning = newAgentForm.positioning.trim() || `${role} ／ 專案核心協力夥伴`;
-    const avatar = newAgentForm.avatar.trim() || "🧑🏻‍💻";
+    const avatar = pickAvatarFor([role, department, positioning, newAgentForm.specialty, name].join(" "), new Set(office.agents.map((a) => a.avatar)));
     const specialty = newAgentForm.specialty.trim() || `以「${role}」專業視角執行任務、分析問題並提供高品質交付成果`;
     const personality = newAgentForm.personality.trim() || `充滿熱忱、自主性極高的「${name}」，總能從「${role}」專業切入點提供可靠支援。`;
     const id = `custom-${Date.now()}`;
@@ -778,7 +759,7 @@ function App() {
       role: editAgentForm.role.trim() || target.role,
       department: editAgentForm.department.trim() || target.department,
       positioning: editAgentForm.positioning.trim() || target.positioning,
-      avatar: editAgentForm.avatar.trim() || target.avatar,
+      avatar: target.avatar, // avatars are locked (src/avatarRegistry.ts)
       zoneId: editAgentForm.zoneId || target.zoneId,
       status: editAgentForm.status || target.status,
       bubble: editAgentForm.bubble.trim() || target.bubble,
@@ -1353,7 +1334,6 @@ function App() {
                   onOpenChat={() => { setPopup({ kind: "agent-chat", agentId: selectedAgent.id }); setPopupInput(""); }}
                   onOpenTools={() => setPopup({ kind: "agent-tools", agentId: selectedAgent.id })}
                   onOpenOutput={() => setPopup({ kind: "agent-output", agentId: selectedAgent.id })}
-                  onOpenAvatarPicker={() => { setPopup({ kind: "avatar-picker", agentId: selectedAgent.id }); setPopupInput(selectedAgent.avatar); }}
                   onOpenEditProfile={() => openEditAgent(selectedAgent)}
                   skillInfo={skillsMap[selectedAgent.id]}
                   onOpenSkill={() => {
@@ -1560,20 +1540,6 @@ function App() {
             setSelection({ kind: "agent", id: "planner" });
             setPopup(null);
           }}
-          onUpdateAgentAvatar={(agentId, newAvatar) => {
-            const target = office.agents.find((a) => a.id === agentId);
-            officeDataSource.dispatch({
-              type: "agent.avatar",
-              agentId,
-              avatar: newAvatar,
-              event: createEvent(agentId, "file", `${target?.name ?? "同事"} 更換了新頭像`, "已更新角色個人頭像設定。"),
-            });
-            void saveAvatarOverrideApi(agentId, newAvatar);
-            if (target) {
-              void saveAgentProfileApi({ ...target, avatar: newAvatar }, { avatar: newAvatar });
-            }
-            setPopup({ kind: "agent-status", agentId });
-          }}
           skillsMap={skillsMap}
           onSelectSkillAgent={(agentId) => {
             setPopup({ kind: "skill-viewer", agentId });
@@ -1735,7 +1701,7 @@ function getDynamicBubble(
       const turns = [
         "汪！大家深呼吸～開會不要太嚴肅喔！",
         "來點心靈療癒，喝口水再繼續～",
-        "麻糬覺得這版好讚！汪汪～",
+        "米米覺得這版好讚！汪汪～",
         "深呼吸～大家休息一下喝杯水！",
       ];
       return turns[turn];
@@ -1756,7 +1722,7 @@ function getDynamicBubble(
         "🐕 東東在辦公室到處散步巡邏～",
         "散步中！來看看大家在忙什麼🐾",
         "剛剛繞了辦公室一圈，氣氛超棒！",
-        "找米米跟麻糬玩耍中～",
+        "找米米玩耍中～",
         "巡邏到沙發區，伸個懶腰🐾",
         "去耍廢室散個步充電一下！",
       ];
@@ -1780,7 +1746,7 @@ function getDynamicBubble(
     return "🐕 東東在辦公室散步巡邏中！";
   }
 
-  // 3. 麻糬 (Momo)
+  // 3. 米米 (Momo)
   if (agent.id === "momo") {
     if (agent.zoneId === "rest" || agent.zoneId === "lounge" || agent.status === "idle") {
       const momoRest = [
@@ -2091,7 +2057,7 @@ function OfficeScene({
                             <div className="tw-card-owner">
                               {owner ? (
                                 <>
-                                  <AvatarView avatar={owner.avatar} role={owner.role} />
+                                  <span className="inline-avatar"><AvatarView avatar={owner.avatar} role={owner.role} /></span>
                                   <span>{owner.name}</span>
                                 </>
                               ) : <span>待指派</span>}
@@ -2276,7 +2242,6 @@ function AgentPanel({
   onMoveZone,
   onOpenStatusPopup,
   onOpenChat,
-  onOpenAvatarPicker,
   onOpenEditProfile,
   skillInfo,
   onOpenSkill,
@@ -2296,7 +2261,6 @@ function AgentPanel({
   onOpenChat: () => void;
   onOpenTools?: () => void;
   onOpenOutput?: () => void;
-  onOpenAvatarPicker: () => void;
   onOpenEditProfile: () => void;
   skillInfo?: ColleagueSkillInfo;
   onOpenSkill: () => void;
@@ -2306,18 +2270,16 @@ function AgentPanel({
     <div className="panel-content streamlined-agent-panel">
       {/* 200px 巨幅相框簡歷舞台 */}
       <div className="hero-resume-stage">
-        <button
-          type="button"
-          className={`hero-resume-avatar person-avatar-clickable ${agent.role.includes("吉祥物") ? "person-mascot" : ""}`}
-          onClick={onOpenAvatarPicker}
-          title="點擊更換頭像 (200px 巨幅相框)"
+        <div
+          className={`hero-resume-avatar ${agent.role.includes("吉祥物") ? "person-mascot" : ""}`}
+          title="頭像由程式庫統一管理（已鎖定）"
         >
           <span className="hero-resume-frame-tag">RESUME</span>
           <span className="hero-avatar-clip-box">
             <AvatarView avatar={agent.avatar} role={agent.role} />
           </span>
           <i className={`hero-online-dot ${agent.status === "idle" ? "online-idle" : ""}`} />
-        </button>
+        </div>
 
         <div className="hero-identity-block">
           <div className="hero-name-row">
@@ -2413,9 +2375,6 @@ function AgentPanel({
       <div className="hero-utility-actions">
         <button type="button" className="hero-util-btn" onClick={onOpenEditProfile}>
           <span>✎</span> 編輯資訊
-        </button>
-        <button type="button" className="hero-util-btn" onClick={onOpenAvatarPicker}>
-          <span>🖼️</span> 更換頭像
         </button>
         <button type="button" className="hero-util-btn" onClick={onOpenSkill} title={skillInfo?.skillName ?? "SKILL.md"}>
           <span>📘</span> 技能規範
@@ -2707,7 +2666,6 @@ function GamePopupModal({
   onOpenEditAgent,
   onSubmitEditAgent,
   onDeleteCustomAgent,
-  onUpdateAgentAvatar,
   skillsMap,
   onSelectSkillAgent,
   onSaveSkillMarkdown,
@@ -2827,7 +2785,6 @@ function GamePopupModal({
   onOpenEditAgent: (agent: Agent) => void;
   onSubmitEditAgent: () => void;
   onDeleteCustomAgent: (agentId: string) => void;
-  onUpdateAgentAvatar: (agentId: string, newAvatar: string) => void;
   skillsMap: Record<string, ColleagueSkillInfo>;
   onSelectSkillAgent: (agentId: string) => void;
   onSaveSkillMarkdown: (agentId: string, mdContent: string) => void;
@@ -3071,19 +3028,11 @@ function GamePopupModal({
 
             <div className="rpg-dialogue-stage">
               <div className="rpg-speaker-portrait">
-                <button
-                  type="button"
-                  className="rpg-speaker-avatar"
-                  title="更換頭像"
-                  onClick={() => {
-                    onInput(agent.avatar);
-                    onNavigatePopup({ kind: "avatar-picker", agentId: agent.id });
-                  }}
-                >
+                <div className="rpg-speaker-avatar">
                   <span className="avatar-clip-box">
                     <AvatarView avatar={agent.avatar} role={agent.role} />
                   </span>
-                </button>
+                </div>
                 <strong>{agent.name}</strong>
                 <span>{agent.department ?? agent.role}</span>
               </div>
@@ -3772,37 +3721,15 @@ function GamePopupModal({
                 />
               </label>
 
-              <label className="modal-label">
-                5. 角色頭像 (圖示 / 網址 / 上傳圖片)
-                <div className="avatar-input-row">
+              <div className="modal-label">
+                5. 角色頭像
+                <div className="avatar-input-row avatar-locked-row">
                   <span className="avatar-preview-box">
-                    <AvatarView avatar={editAgentForm.avatar || target.avatar} role={editAgentForm.role} />
+                    <AvatarView avatar={target.avatar} role={target.role} />
                   </span>
-                  <input
-                    type="text"
-                    className="ui-field-input"
-                    placeholder={editAgentForm.avatar.startsWith("data:") ? "已使用上傳圖片" : "Emoji 或圖片網址"}
-                    value={editAgentForm.avatar.startsWith("data:") ? "" : editAgentForm.avatar}
-                    onChange={(e) => onChangeEditAgentForm({ ...editAgentForm, avatar: e.target.value })}
-                  />
-                  <label className="upload-avatar-btn" title="上傳 GIF 動畫或圖片">
-                    📁 上傳
-                    <input
-                      type="file"
-                      accept="image/gif,image/png,image/jpeg,image/webp,image/*,.gif,.png,.jpg,.jpeg,.webp"
-                      style={{ display: "none" }}
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        const uploadedUrl = await uploadAvatarFileApi(file, editAgentForm.id);
-                        if (uploadedUrl) {
-                          onChangeEditAgentForm({ ...editAgentForm, avatar: uploadedUrl });
-                        }
-                      }}
-                    />
-                  </label>
+                  <span className="avatar-locked-note">🔒 頭像已鎖定，由程式庫統一管理，所有裝置都會顯示同一張。</span>
                 </div>
-              </label>
+              </div>
               <label className="modal-label">
                 6. 所在辦公室房間
                 <select
@@ -3839,18 +3766,6 @@ function GamePopupModal({
               </label>
             </div>
 
-            <div className="avatar-preset-grid" style={{ marginTop: 6 }}>
-              {AVATAR_PRESETS.map((em) => (
-                <button
-                  type="button"
-                  key={em}
-                  className={`avatar-preset-cell ${editAgentForm.avatar === em ? "avatar-cell-active" : ""}`}
-                  onClick={() => onChangeEditAgentForm({ ...editAgentForm, avatar: em })}
-                >
-                  {em}
-                </button>
-              ))}
-            </div>
 
             <label className="modal-label" htmlFor="edit-agent-specialty" style={{ marginTop: 8 }}>
               9. 角色核心專長（同步寫入 SKILL.md）
@@ -4105,7 +4020,7 @@ function GamePopupModal({
                   <div className="decision-card-head">
                     <strong>⚖️ 4. 品牌素材、字體與公開部署授權聲明</strong>
                   </div>
-                  <p>• 色票系統、房間向量道具與像素吉祥物（麻糬、東東）均為專案原創資產，授權於 GitHub Pages（szhu72.github.io/ai-office/）公開展示與修改。</p>
+                  <p>• 色票系統、房間向量道具與像素吉祥物（米米、東東）均為專案原創資產，授權於 GitHub Pages（szhu72.github.io/ai-office/）公開展示與修改。</p>
                   <p>• 採用系統安全與開源字型堆疊（Trebuchet MS / Noto Sans TC / Consolas），無第三方商用字體侵權風險。</p>
                 </div>
               </div>
@@ -4500,37 +4415,18 @@ function GamePopupModal({
                 />
               </label>
 
-              <label className="modal-label">
-                5. 角色頭像
-                <div className="avatar-input-row">
+              <div className="modal-label">
+                5. 角色頭像（依職稱自動配對）
+                <div className="avatar-input-row avatar-locked-row">
                   <span className="avatar-preview-box">
-                    <AvatarView avatar={newAgentForm.avatar || "🕵🏻‍♂️"} />
+                    <AvatarView avatar={pickAvatarFor(
+                      [newAgentForm.role, newAgentForm.department, newAgentForm.positioning, newAgentForm.specialty, newAgentForm.name].join(" "),
+                      new Set(office.agents.map((a) => a.avatar)),
+                    )} />
                   </span>
-                  <input
-                    type="text"
-                    className="ui-field-input"
-                    placeholder={newAgentForm.avatar.startsWith("data:") ? "已載入上傳圖片" : "Emoji 或圖片網址…"}
-                    value={newAgentForm.avatar.startsWith("data:") ? "" : newAgentForm.avatar}
-                    onChange={(e) => onChangeNewAgentForm({ ...newAgentForm, avatar: e.target.value })}
-                  />
-                  <label className="upload-avatar-btn" title="上傳 GIF 動畫或圖片檔">
-                    📁 上傳
-                    <input
-                      type="file"
-                      accept="image/gif,image/png,image/jpeg,image/webp,image/*,.gif,.png,.jpg,.jpeg,.webp"
-                      style={{ display: "none" }}
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        const uploadedUrl = await uploadAvatarFileApi(file, `custom-${Date.now()}`);
-                        if (uploadedUrl) {
-                          onChangeNewAgentForm({ ...newAgentForm, avatar: uploadedUrl });
-                        }
-                      }}
-                    />
-                  </label>
+                  <span className="avatar-locked-note">🔒 會自動配給尚未被使用、且符合職稱的史萊姆；沒有符合的則使用「新人」造型。</span>
                 </div>
-              </label>
+              </div>
               <label className="modal-label">
                 6. 進駐辦公室房間
                 <select
@@ -4567,18 +4463,6 @@ function GamePopupModal({
               </label>
             </div>
 
-            <div className="avatar-preset-grid" style={{ marginTop: 6 }}>
-              {AVATAR_PRESETS.map((em) => (
-                <button
-                  type="button"
-                  key={em}
-                  className={`avatar-preset-cell ${newAgentForm.avatar === em ? "avatar-cell-active" : ""}`}
-                  onClick={() => onChangeNewAgentForm({ ...newAgentForm, avatar: em })}
-                >
-                  {em}
-                </button>
-              ))}
-            </div>
 
             <label className="modal-label" htmlFor="new-agent-specialty" style={{ marginTop: 8 }}>
               9. 核心專長與規範（自動生成 SKILL.md）
@@ -4635,96 +4519,6 @@ function GamePopupModal({
               <button type="button" className="cancel-button" onClick={onClose}>取消</button>
               <button type="button" className="primary-button" onClick={onSubmitCreateAgent}>
                 ✓ 確認招募 <span>→</span>
-              </button>
-            </div>
-          </>
-        );
-      }
-
-      case "avatar-picker": {
-        const target = office.agents.find((a) => a.id === popup.agentId) ?? office.agents[0];
-        const currentAvatar = input || target.avatar;
-        const isGif = isGifAvatar(currentAvatar);
-        return (
-          <>
-            <h2>🖼️ 更換「{target.name}（{target.role}）」頭像</h2>
-            <div className="avatar-picker-hero">
-              <div className="avatar-preview-large">
-                <AvatarView avatar={currentAvatar} role={target.role} />
-                {isGif && <span className="gif-active-pill" title="GIF 動態播放中">🟢 GIF 動態</span>}
-              </div>
-              <div className="avatar-picker-controls">
-                <label className="modal-label">
-                  Emoji、圖片網址 或 GIF 檔案路徑
-                  <input
-                    type="text"
-                    className="ui-field-input"
-                    value={input.startsWith("data:") ? "" : input}
-                    onChange={(e) => onInput(e.target.value)}
-                    placeholder={input.startsWith("data:") ? "已套用上傳檔案 (GIF / 圖片)" : "輸入 Emoji、./avatars/*.gif 或圖片網址"}
-                  />
-                </label>
-                <div className="avatar-upload-row">
-                  <label className="upload-avatar-btn upload-avatar-btn-large">
-                    📁 從電腦上傳 GIF / 圖片 (支援動態 GIF、PNG、WebP)
-                    <input
-                      type="file"
-                      accept="image/gif,image/png,image/jpeg,image/webp,image/*,.gif,.png,.jpg,.jpeg,.webp"
-                      style={{ display: "none" }}
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        const uploadedUrl = await uploadAvatarFileApi(file, target.id);
-                        if (uploadedUrl) {
-                          onInput(uploadedUrl);
-                        }
-                      }}
-                    />
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <div className="gif-presets-shelf">
-              <div className="gif-shelf-title">✨ 精選動態 GIF 像素頭像庫（點擊立即預覽循環動畫）：</div>
-              <div className="gif-preset-grid">
-                {GIF_AVATAR_PRESETS.map((preset) => (
-                  <button
-                    type="button"
-                    key={preset.url}
-                    className={`gif-preset-card ${currentAvatar === preset.url ? "avatar-cell-active" : ""}`}
-                    onClick={() => onInput(preset.url)}
-                    title={`套用 ${preset.label}`}
-                  >
-                    <img src={preset.url} alt="" className="gif-preset-thumb" />
-                    <span className="gif-preset-label">{preset.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="avatar-preset-heading">或選擇傳統 Emoji 圖示：</div>
-            <div className="avatar-preset-grid">
-              {AVATAR_PRESETS.map((em) => (
-                <button
-                  type="button"
-                  key={em}
-                  className={`avatar-preset-cell ${currentAvatar === em ? "avatar-cell-active" : ""}`}
-                  onClick={() => onInput(em)}
-                >
-                  {em}
-                </button>
-              ))}
-            </div>
-
-            <div className="modal-actions">
-              <button type="button" className="cancel-button" onClick={onClose}>取消</button>
-              <button
-                type="button"
-                className="primary-button"
-                onClick={() => onUpdateAgentAvatar(target.id, (input || target.avatar).trim())}
-              >
-                ✓ 套用新頭像 <span>→</span>
               </button>
             </div>
           </>

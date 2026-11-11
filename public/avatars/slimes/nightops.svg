@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs><clipPath id="b"><path d="M60 22 C88 22 102 48 102 76 C102 88 109 93 109 99 C109 104 103 106 96 106 L24 106 C17 106 11 104 11 99 C11 93 18 88 18 76 C18 48 32 22 60 22 Z"/></clipPath></defs>
+  
+  <g transform="translate(60 106)"><g>
+    <animateTransform attributeName="transform" type="scale" values="1 1;1.035 .965;1 1" keyTimes="0;.5;1" dur="2.6s" repeatCount="indefinite" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1"/>
+    <g transform="translate(-60 -106)">
+      <path d="M60 22 C88 22 102 48 102 76 C102 88 109 93 109 99 C109 104 103 106 96 106 L24 106 C17 106 11 104 11 99 C11 93 18 88 18 76 C18 48 32 22 60 22 Z" fill="#7a6cc0"/>
+      <g clip-path="url(#b)"><path d="M0 93 C40 101 80 101 120 91 L120 120 L0 120 Z" fill="#6556a8"/></g>
+      <path d="M29 54 C32 42 39 33 48 29" fill="none" stroke="#fff" stroke-width="4.5" stroke-linecap="round" opacity=".8"/>
+      <path d="M60 22 C88 22 102 48 102 76 C102 88 109 93 109 99 C109 104 103 106 96 106 L24 106 C17 106 11 104 11 99 C11 93 18 88 18 76 C18 48 32 22 60 22 Z" fill="none" stroke="#232220" stroke-width="5" stroke-linejoin="round"/>
+      <g transform="translate(0 2)"><circle cx="46" cy="64" r="9" fill="#fff" stroke="#232220" stroke-width="3.6"/><circle cx="46" cy="64" r="3.6" fill="#232220"/><path d="M36.5 62.5 Q46 58 55.5 62.5 L55.5 54 L36.5 54 Z" fill="#7a6cc0"/><path d="M37 62.5 Q46 59 55 62.5" fill="none" stroke="#232220" stroke-width="3.2" stroke-linecap="round"/><circle cx="74" cy="64" r="9" fill="#fff" stroke="#232220" stroke-width="3.6"/><circle cx="74" cy="64" r="3.6" fill="#232220"/><path d="M64.5 62.5 Q74 58 83.5 62.5 L83.5 54 L64.5 54 Z" fill="#7a6cc0"/><path d="M65 62.5 Q74 59 83 62.5" fill="none" stroke="#232220" stroke-width="3.2" stroke-linecap="round"/><path d="M56 82 Q60 79 64 82" fill="none" stroke="#232220" stroke-width="3.2" stroke-linecap="round"/><path d="M44 92 A7 7 0 1 0 52 99 A5.5 5.5 0 1 1 44 92 Z" fill="#f7d154" stroke="#232220" stroke-width="2.2"/></g>
+      <g transform="translate(0 4)"><path d="M34 30 C40 14 66 8 92 4 C82 14 80 24 86 32 C70 36 48 36 34 30 Z" fill="#3d3570" stroke="#232220" stroke-width="3.4" stroke-linejoin="round"/><circle cx="93" cy="5" r="5" fill="#fffdf6" stroke="#232220" stroke-width="3"/></g>
+    </g>
+  </g></g>
+  <text x="100" y="40" font-family="Trebuchet MS,sans-serif" font-weight="900" font-size="12" fill="#9aa3d8" stroke="#232220" stroke-width=".6">z<animate attributeName="opacity" values="0;1;0" dur="2.4s" repeatCount="indefinite"/></text>
+    <text x="108" y="28" font-family="Trebuchet MS,sans-serif" font-weight="900" font-size="9" fill="#9aa3d8" stroke="#232220" stroke-width=".6">z<animate attributeName="opacity" values="0;1;0" dur="2.4s" begin="1.2s" repeatCount="indefinite"/></text>
+</svg>
