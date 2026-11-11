@@ -3250,3 +3250,9 @@ button:focus-visible, select:focus-visible, textarea:focus-visible {
 
 
 
+
+/* 任務牆卡片：負責同事即時狀態（取代需另開的思考監控窗） */
+.tw-live{display:flex;align-items:flex-start;gap:6px;margin:5px 0 2px;padding:4px 6px;border:1px dashed rgba(40,43,43,.28);border-radius:3px;background:rgba(255,255,255,.45);font-size:9.5px;line-height:1.35;min-width:0}
+.tw-live-stage{flex:0 0 auto;padding:1px 5px;border-radius:2px;background:#e8efe9;color:#3f6a48;font-family:"Courier New",monospace;font-size:8.5px;white-space:nowrap}
+.tw-live-running .tw-live-stage{background:#fdebd6;color:#c4621a}
+.tw-live-text{flex:1 1 auto;min-width:0;color:#444;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}

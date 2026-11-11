@@ -167,7 +167,7 @@ function App() {
       running: false,
     },
   ]);
-  const [showMonitor, setShowMonitor] = useState(true);
+  const [showMonitor, setShowMonitor] = useState(false);
   const [monitorMinimized, setMonitorMinimized] = useState(false);
   const [mobile916, setMobile916] = useState(false);
   const [autoTick, setAutoTick] = useState(0);
@@ -1950,6 +1950,14 @@ function OfficeScene({
                             <span className={`task-status-pill status-${task.status}`}>{task.status}</span>
                           </div>
                           <p className="tw-card-goal">{task.goal}</p>
+                          {owner && !isEnded && (
+                            <div className={`tw-live ${thinkingAgents[owner.id] ? "tw-live-running" : ""}`}>
+                              <span className="tw-live-stage">
+                                {thinkingAgents[owner.id] ? `⏳ ${thinkingAgents[owner.id]}` : statusNames[owner.status]}
+                              </span>
+                              <span className="tw-live-text">💭 {getDynamicBubble(owner, office, thinkingAgents[owner.id], bubbleCycle)}</span>
+                            </div>
+                          )}
                           <div className="tw-card-bottom">
                             <div className="tw-card-owner">
                               {owner ? (
