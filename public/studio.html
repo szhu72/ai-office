@@ -72,6 +72,7 @@
     <div class="pipe" id="pipe"></div>
     <div class="row">
       <button class="primary" id="runBtn">▶ 核准並開始製作</button>
+      <button id="resumeBtn" class="hidden">⏯ 從中斷處繼續</button>
       <button id="fixBtn">🔧 再修一輪</button>
       <button id="resetBtn">↺ 重新開始</button>
     </div>
@@ -190,6 +191,9 @@
     const allAnswered = state && state.confirmations.every((c) => c.choice);
     $("runBtn").disabled = !state || busy || !allAnswered;
     $("runBtn").textContent = hasFiles ? "▶ 依目前決策重新製作" : "▶ 核准並開始製作";
+    const canResume = state && state.spec && !busy && !(state.review && state.review.pass && runtimeProblems(state.runtime || {}).length === 0);
+    $("resumeBtn").classList.toggle("hidden", !canResume);
+    $("resumeBtn").disabled = !canResume || !allAnswered;
     $("fixBtn").disabled = !hasFiles || busy;
     $("resetBtn").disabled = busy;
     $("pushBtn").disabled = !hasFiles || busy;
@@ -362,20 +366,36 @@ setTimeout(function(){var c=document.querySelector("canvas"),painted=false;
     return false;
   }
 
-  async function runAll() {
-    if (busy) return; busy = true; renderButtons();
-    state.note = $("directorNote").value.trim(); state.fixRounds = 0; state.stages = {}; persist(); renderPipe();
-    syncOfficeTask("進行中", 10, "小橘拆解規格中");
+  // 製作期間讓螢幕保持亮著（瀏覽器支援時），降低手機自動休眠導致中斷的機率
+  let wakeLock = null;
+  async function keepAwake(on) {
     try {
-      log("總監", "核准決策，產線開工。");
-      await stage("spec", async () => {
+      if (on && "wakeLock" in navigator && !wakeLock) { wakeLock = await navigator.wakeLock.request("screen"); wakeLock.addEventListener("release", () => { wakeLock = null; }); }
+      if (!on && wakeLock) { await wakeLock.release(); wakeLock = null; }
+    } catch {}
+  }
+  document.addEventListener("visibilitychange", () => { if (busy && document.visibilityState === "visible") keepAwake(true); });
+
+  async function runAll(resume) {
+    if (busy) return; busy = true; renderButtons(); keepAwake(true);
+    state.note = $("directorNote").value.trim(); state.fixRounds = 0;
+    const skipSpec = resume === true && !!state.spec;
+    const skipCode = skipSpec && state.version > 0 && Object.keys(state.files).some((n) => n !== "README.md");
+    state.stages = skipSpec ? { spec: "done", ...(skipCode ? { code: "done" } : {}) } : {};
+    persist(); renderPipe();
+    syncOfficeTask("進行中", skipCode ? 60 : skipSpec ? 35 : 10, skipCode ? "接續：自動試玩與審查中" : skipSpec ? "接續：阿碼撰寫程式中" : "小橘拆解規格中");
+    try {
+      log("總監", skipSpec ? `從中斷處繼續（略過已完成的${skipCode ? "規格與程式" : "規格"}）。` : "核准決策，產線開工。");
+      if (!skipSpec) await stage("spec", async () => {
         const sys = "你是 AI 辦公室的策劃「小橘」，負責把會議決策轉成工程師能直接實作的規格書。用繁體中文、Markdown。";
         const r = await gemini(sys, `${briefing()}\n\n請寫出遊戲規格書，包含：遊戲名稱、核心玩法、操作方式（鍵盤＋手機觸控按鈕）、計分與連擊規則、難度/速度分級、美術風格（純 Canvas 繪製）、畫面配置、本版不做的項目（依總監確認），以及「驗收清單」（可逐項檢查的條目）。控制在 60 行內。`);
         state.spec = r.text.trim(); persist();
         log("小橘", `規格書完成（${state.spec.split("\n").length} 行）。`);
       });
-      syncOfficeTask("進行中", 35, "阿碼撰寫程式中");
-      await stage("code", () => writeCode("new"));
+      if (!skipCode) {
+        syncOfficeTask("進行中", 35, "阿碼撰寫程式中");
+        await stage("code", () => writeCode("new"));
+      }
       syncOfficeTask("進行中", 60, "自動試玩與審查中");
       const r = await testAndReview();
       let ok = r.runtimeOk && r.reviewOk;
@@ -386,11 +406,11 @@ setTimeout(function(){var c=document.querySelector("canvas"),painted=false;
       currentTab = "preview";
     } catch (e) {
       log("系統", e.message || String(e), "err");
-    } finally { busy = false; renderAll(); }
+    } finally { busy = false; keepAwake(false); renderAll(); }
   }
 
   async function fixOnce() {
-    if (busy) return; busy = true; renderButtons();
+    if (busy) return; busy = true; renderButtons(); keepAwake(true);
     try {
       const extra = prompt("想讓阿碼修什麼？（留空＝依小處的審查意見修正）") || "";
       const issues = [...runtimeProblems(state.runtime || {}), ...((state.review && state.review.issues) || [])];
@@ -400,7 +420,7 @@ setTimeout(function(){var c=document.querySelector("canvas"),painted=false;
       await testAndReview();
       state.files["README.md"] = buildReadme(); persist();
     } catch (e) { log("系統", e.message || String(e), "err"); }
-    finally { busy = false; renderAll(); }
+    finally { busy = false; keepAwake(false); renderAll(); }
   }
 
   function buildReadme() {
@@ -475,12 +495,17 @@ setTimeout(function(){var c=document.querySelector("canvas"),painted=false;
   // ---------- wire up ----------
   const g = load(LS_GH, {}); $("ghOwner").value = g.owner || "szhu72"; $("ghRepo").value = g.repo || ""; $("ghToken").value = localStorage.getItem(LS_GH_TOKEN) || "";
   $("directorNote").oninput = (e) => { if (state) { state.note = e.target.value; persist(); } };
-  $("runBtn").onclick = runAll; $("fixBtn").onclick = fixOnce; $("pushBtn").onclick = push;
+  $("runBtn").onclick = () => runAll(false); $("resumeBtn").onclick = () => runAll(true); $("fixBtn").onclick = fixOnce; $("pushBtn").onclick = push;
   $("forgetBtn").onclick = () => { localStorage.removeItem(LS_GH_TOKEN); $("ghToken").value = ""; $("pushLine").textContent = "已清除 Token。"; };
   $("resetBtn").onclick = () => { if (!state || confirm("清除目前的規格、程式和紀錄，重新開始？")) { const m = readMeeting(); state = m ? freshState(m) : null; persist(); renderAll(); } };
   window.addEventListener("beforeunload", (e) => { if (busy) { e.preventDefault(); e.returnValue = ""; } });
   if (state && state.lastPush) $("pushLine").innerHTML = `上次發布 v${state.lastPush.version}：<a class="ext" href="${state.lastPush.siteUrl}" target="_blank" rel="noopener">${state.lastPush.siteUrl}</a>`;
-  if (state) { Object.keys(state.stages).forEach((k) => { if (state.stages[k] === "run") state.stages[k] = "fail"; }); persist(); }
+  if (state) {
+    let interrupted = false;
+    Object.keys(state.stages).forEach((k) => { if (state.stages[k] === "run") { state.stages[k] = "fail"; interrupted = true; } });
+    if (interrupted) state.log.push({ t: now(), who: "系統", msg: "上次製作在中途被中斷（離開頁面或螢幕休眠）。可按「⏯ 從中斷處繼續」。", cls: "err" });
+    persist();
+  }
   renderAll();
 })();
 </script>

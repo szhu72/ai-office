@@ -3224,3 +3224,5 @@ button.tw-chip:disabled{cursor:default;opacity:.55}
 /* The map sprite frame sets image-rendering:pixelated (inherited); vector slimes and
    photo WebPs should stay smooth. Only legacy pixel-art GIFs keep the crisp look. */
 .custom-avatar-img:not(.avatar-gif-animated){image-rendering:auto}
+
+.tw-studio-btn{background:#282b2b!important;color:#fff8eb!important}

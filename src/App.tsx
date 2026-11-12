@@ -2091,6 +2091,19 @@ function OfficeScene({
                               ) : (
                                 <span className="tw-ended-label">✓ 已結束</span>
                               )}
+                              {task.id === "studio-game" && (
+                                <button
+                                  type="button"
+                                  className="tw-finish-btn tw-studio-btn"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    window.location.href = "./studio.html";
+                                  }}
+                                  title="前往專案產線查看或繼續製作"
+                                >
+                                  🏭 前往產線
+                                </button>
+                              )}
                               <span className="tw-progress-badge">{task.progress}%</span>
                             </div>
                           </div>
