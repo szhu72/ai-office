@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#282b2b" />
+<title>專案產線 — 無所事事辦公室</title>
+<link rel="manifest" href="./manifest.webmanifest" />
+<link rel="icon" type="image/png" href="./favicon.png" />
+<style>
+  :root{--orange:#EE6C29;--ink:#282B2B;--paper:#E2DAC2;--surface:#FBFAF6;--green:#6B9B72;--blue:#7AA6B3;--amber:#F39120;--muted:#6E6A60}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:"Trebuchet MS","Noto Sans TC","Microsoft JhengHei",sans-serif;font-size:14px;line-height:1.5}
+  header{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--ink);color:#f8f5ec}
+  header a{color:#f8f5ec;text-decoration:none;border:1px solid rgba(255,255,255,.25);border-radius:4px;padding:4px 8px;font-size:12px}
+  header h1{margin:0;font-size:16px;flex:1}
+  main{max-width:860px;margin:0 auto;padding:12px}
+  .card{background:var(--surface);border:2px solid var(--ink);border-radius:6px;box-shadow:4px 5px 0 rgba(40,43,43,.18);padding:12px 14px;margin:0 0 14px}
+  .card h2{margin:0 0 8px;font-size:15px;display:flex;align-items:center;gap:8px}
+  .muted{color:var(--muted);font-size:12px}
+  ul{margin:4px 0;padding-left:20px}
+  .confirm{border:1px dashed #c9bfa6;border-radius:4px;padding:8px;margin:6px 0;background:#fff}
+  .confirm .q{font-weight:600;margin-bottom:6px}
+  .seg{display:flex;gap:6px;flex-wrap:wrap}
+  .seg button{flex:0 0 auto}
+  input[type=text],input[type=password],textarea{width:100%;padding:8px;border:1.5px solid var(--ink);border-radius:4px;font:inherit;background:#fff}
+  textarea{min-height:60px}
+  label{display:block;font-size:12px;font-weight:600;margin:8px 0 3px}
+  button{font:inherit;cursor:pointer;border:2px solid var(--ink);border-radius:5px;background:#fff;color:var(--ink);padding:7px 12px}
+  button.primary{background:var(--orange);color:#fff8eb;font-weight:700;box-shadow:2px 3px 0 var(--ink)}
+  button.on{background:var(--ink);color:#fff}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+  .pipe{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+  .step{border:1.5px solid #c9bfa6;border-radius:5px;padding:8px;background:#fff;font-size:12px}
+  .step b{display:block;font-size:13px}
+  .step.run{border-color:var(--amber);background:#fdf1e2}
+  .step.done{border-color:var(--green);background:#eef5ef}
+  .step.fail{border-color:#c0392b;background:#fbeaea}
+  .log{max-height:260px;overflow:auto;background:#161B19;color:#cfe8d8;font-family:Consolas,"Courier New",monospace;font-size:11.5px;padding:8px;border-radius:4px;white-space:pre-wrap}
+  .log .who{color:#F4B886}.log .err{color:#F29B58}.log .ok{color:#7FE0A2}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+  pre.code{max-height:320px;overflow:auto;background:#f3efe4;border:1px solid #c9bfa6;padding:8px;font-size:11.5px;white-space:pre-wrap;word-break:break-all;margin:0}
+  iframe{width:100%;height:560px;border:2px solid var(--ink);border-radius:5px;background:#fff}
+  .pill{display:inline-block;padding:1px 7px;border-radius:10px;font-size:11px;background:#e8efe9;color:#3f6a48}
+  .pill.warn{background:#fdebd6;color:#c4621a}
+  .hidden{display:none}
+  a.ext{color:var(--orange);font-weight:700;word-break:break-all}
+</style>
+</head>
+<body>
+<header>
+  <a href="./">← 辦公室</a>
+  <h1>🏭 專案產線</h1>
+  <span id="keyState" class="pill"></span>
+</header>
+<main>
+  <section class="card">
+    <h2>📋 會議決策（來源）</h2>
+    <div id="meetingBox" class="muted">讀取中…</div>
+  </section>
+
+  <section class="card">
+    <h2>⏳ 總監確認</h2>
+    <div id="confirmBox"></div>
+    <label for="directorNote">補充指示（選填）</label>
+    <textarea id="directorNote" placeholder="例如：先做單機版，不做線上排行榜；音樂先用無版權音效。"></textarea>
+  </section>
+
+  <section class="card">
+    <h2>⚙️ 產線進度</h2>
+    <div class="pipe" id="pipe"></div>
+    <div class="row">
+      <button class="primary" id="runBtn">▶ 核准並開始製作</button>
+      <button id="fixBtn">🔧 再修一輪</button>
+      <button id="resetBtn">↺ 重新開始</button>
+    </div>
+    <p class="muted" id="statusLine"></p>
+    <div class="log" id="log"></div>
+  </section>
+
+  <section class="card">
+    <h2>🎮 成品</h2>
+    <div class="tabs" id="fileTabs"></div>
+    <div id="previewWrap"><p class="muted">完成製作後，這裡可以直接試玩。</p></div>
+  </section>
+
+  <section class="card">
+    <h2>🚀 發布到 GitHub</h2>
+    <p class="muted">建議先在 GitHub 建一個<b>空的 repo</b>（例如 slime-tetris），再建立只授權那個 repo 的 Fine-grained token（權限：Contents 讀寫、Pages 讀寫）。Token 只存在這支手機的瀏覽器裡，不會上傳到任何地方。</p>
+    <label for="ghOwner">GitHub 帳號</label><input type="text" id="ghOwner" placeholder="szhu72" autocomplete="off" />
+    <label for="ghRepo">Repo 名稱</label><input type="text" id="ghRepo" placeholder="slime-tetris" autocomplete="off" />
+    <label for="ghToken">Token</label><input type="password" id="ghToken" placeholder="github_pat_…" autocomplete="off" />
+    <div class="row">
+      <button class="primary" id="pushBtn">⬆ 推送並發布</button>
+      <button id="forgetBtn">清除 Token</button>
+    </div>
+    <p class="muted" id="pushLine"></p>
+  </section>
+</main>
+
+<script>
+(() => {
+  "use strict";
+  const LS_OFFICE = "aioffice_runtime_save_v2";
+  const LS_HANDOFF = "aioffice_studio_handoff";
+  const LS_STATE = "aioffice_studio_v1";
+  const LS_KEY = "ai_office_gemini_api_key";
+  const LS_GH = "aioffice_github_target";
+  const LS_GH_TOKEN = "aioffice_github_token";
+  const MODELS = ["gemini-3.8-flash","gemini-3.5-flash","gemini-3.1-flash-lite","gemini-3.5-flash-lite","gemini-2.0-flash"];
+  const MAX_FIX_ROUNDS = 2;
+  const STAGES = [
+    { id: "spec",   who: "🧑🏻‍💼 小橘", label: "拆解規格" },
+    { id: "code",   who: "👩🏻‍💻 阿碼", label: "撰寫程式" },
+    { id: "test",   who: "🤖 系統",   label: "自動試玩" },
+    { id: "review", who: "🔍 小處",   label: "品質審查" },
+    { id: "ship",   who: "🚀 總監",   label: "發布" },
+  ];
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const now = () => new Date().toLocaleTimeString("zh-TW", { hour12: false });
+  const load = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
+  const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+
+  let state = load(LS_STATE, null);
+  const freshState = (meeting) => ({
+    meeting, confirmations: (meeting.humanConfirmations || []).map((q) => ({ q, choice: null })),
+    note: "", spec: "", files: {}, review: null, runtime: null, fixRounds: 0,
+    stages: {}, log: [], version: 0, lastPush: null,
+  });
+
+  // ---------- meeting source ----------
+  function readMeeting() {
+    const h = load(LS_HANDOFF, null);
+    if (h && Array.isArray(h.decisions) && h.decisions.length) return h;
+    const office = load(LS_OFFICE, null);
+    return office && office.meeting ? office.meeting : null;
+  }
+  const meeting = readMeeting();
+  if (meeting && (!state || JSON.stringify(state.meeting) !== JSON.stringify(meeting))) {
+    if (!state || !state.version || confirm("偵測到新的會議決策，要用它開一個新專案嗎？（目前的成品會被取代）")) state = freshState(meeting);
+  }
+  if (!state && meeting) state = freshState(meeting);
+  const persist = () => save(LS_STATE, state);
+
+  // ---------- render ----------
+  function renderMeeting() {
+    if (!state) { $("meetingBox").innerHTML = '目前沒有會議決策。請先回辦公室「召開腦力激盪」，再按「核准決策」。'; return; }
+    const m = state.meeting;
+    $("meetingBox").innerHTML =
+      `<p><b>摘要：</b>${esc(m.summary)}</p>` +
+      `<b>已形成決策</b><ul>${(m.decisions || []).map((d) => `<li>${esc(d)}</li>`).join("")}</ul>` +
+      ((m.disagreements || []).length ? `<b>仍有分歧</b><ul>${m.disagreements.map((d) => `<li>${esc(d)}</li>`).join("")}</ul>` : "");
+  }
+  function renderConfirm() {
+    if (!state) return;
+    const box = $("confirmBox");
+    if (!state.confirmations.length) { box.innerHTML = '<p class="muted">沒有需要確認的項目。</p>'; }
+    else box.innerHTML = state.confirmations.map((c, i) => `
+      <div class="confirm"><div class="q">${esc(c.q)}</div>
+        <div class="seg">
+          <button data-i="${i}" data-v="yes" class="${c.choice === "yes" ? "on" : ""}">同意</button>
+          <button data-i="${i}" data-v="no" class="${c.choice === "no" ? "on" : ""}">不要</button>
+          <button data-i="${i}" data-v="later" class="${c.choice === "later" ? "on" : ""}">之後再說</button>
+        </div></div>`).join("");
+    box.querySelectorAll("button").forEach((b) => b.onclick = () => {
+      state.confirmations[+b.dataset.i].choice = b.dataset.v; persist(); renderConfirm(); renderButtons();
+    });
+    $("directorNote").value = state.note || "";
+  }
+  function renderPipe() {
+    $("pipe").innerHTML = STAGES.map((s) => {
+      const st = (state && state.stages[s.id]) || "";
+      const txt = { run: "進行中…", done: "完成", fail: "需修正" }[st] || "待命";
+      return `<div class="step ${st}"><b>${s.label}</b>${s.who}<br>${txt}</div>`;
+    }).join("");
+  }
+  function renderLog() {
+    const el = $("log");
+    el.innerHTML = (state ? state.log : []).map((l) =>
+      `<div><span class="muted">[${l.t}]</span> <span class="who">${esc(l.who)}</span> <span class="${l.cls || ""}">${esc(l.msg)}</span></div>`).join("");
+    el.scrollTop = el.scrollHeight;
+  }
+  function log(who, msg, cls) { state.log.push({ t: now(), who, msg, cls }); if (state.log.length > 200) state.log.shift(); persist(); renderLog(); }
+  function setStage(id, st) { state.stages[id] = st; persist(); renderPipe(); }
+  function renderButtons() {
+    const hasFiles = state && Object.keys(state.files).length;
+    const allAnswered = state && state.confirmations.every((c) => c.choice);
+    $("runBtn").disabled = !state || busy || !allAnswered;
+    $("runBtn").textContent = hasFiles ? "▶ 依目前決策重新製作" : "▶ 核准並開始製作";
+    $("fixBtn").disabled = !hasFiles || busy;
+    $("resetBtn").disabled = busy;
+    $("pushBtn").disabled = !hasFiles || busy;
+    $("statusLine").textContent = !state ? "" : !allAnswered ? "請先回答每一項「總監確認」，產線才能開工。" : busy ? "產線運作中，請不要關閉這個頁面…" : "";
+    const k = (localStorage.getItem(LS_KEY) || "").trim();
+    $("keyState").textContent = k ? "Gemini ✓" : "缺 Gemini Key";
+    $("keyState").className = "pill" + (k ? "" : " warn");
+  }
+  let currentTab = "preview";
+  function renderFiles() {
+    const files = state ? state.files : {};
+    const names = Object.keys(files);
+    if (!names.length) { $("fileTabs").innerHTML = ""; return; }
+    $("fileTabs").innerHTML = ["preview", ...names, "README.md"].filter((n, i, a) => a.indexOf(n) === i)
+      .map((n) => `<button data-n="${esc(n)}" class="${n === currentTab ? "on" : ""}">${n === "preview" ? "▶ 試玩" : esc(n)}</button>`).join("");
+    $("fileTabs").querySelectorAll("button").forEach((b) => b.onclick = () => { currentTab = b.dataset.n; renderFiles(); });
+    const wrap = $("previewWrap");
+    if (currentTab === "preview") {
+      wrap.innerHTML = `<iframe sandbox="allow-scripts" title="遊戲試玩"></iframe><p class="muted">版本 v${state.version}${state.review ? (state.review.pass ? " · 小處審查通過" : " · 小處審查未通過") : ""}</p>`;
+      wrap.querySelector("iframe").srcdoc = buildDoc(files, false);
+    } else {
+      const content = currentTab === "README.md" ? (files["README.md"] || buildReadme()) : files[currentTab];
+      wrap.innerHTML = `<pre class="code">${esc(content)}</pre>`;
+    }
+  }
+  function renderAll() { renderMeeting(); renderConfirm(); renderPipe(); renderLog(); renderFiles(); renderButtons(); }
+
+  // ---------- Gemini ----------
+  async function gemini(system, prompt) {
+    const key = (localStorage.getItem(LS_KEY) || "").trim();
+    if (!key) throw new Error("尚未設定 Gemini API Key，請回辦公室的「🔑 金鑰設定」填入。");
+    const errs = [];
+    for (const model of MODELS) {
+      try {
+        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ systemInstruction: { parts: [{ text: system }] }, contents: [{ role: "user", parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.4, maxOutputTokens: 60000 } }),
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) { errs.push(`${model}: ${d?.error?.message || r.status}`); if (r.status === 400 && /api key/i.test(d?.error?.message || "")) break; continue; }
+        const parts = d?.candidates?.[0]?.content?.parts;
+        const text = Array.isArray(parts) ? parts.map((p) => p.text || "").join("") : "";
+        if (text) return { text, model, truncated: d?.candidates?.[0]?.finishReason === "MAX_TOKENS" };
+        errs.push(`${model}: 空回應`);
+      } catch (e) { errs.push(`${model}: ${e.message || e}`); }
+    }
+    throw new Error("Gemini 無法回應：" + errs.join(" | "));
+  }
+
+  // ---------- prompts ----------
+  function briefing() {
+    const m = state.meeting;
+    const conf = state.confirmations.map((c) => `- ${c.q} → 總監：${{ yes: "同意", no: "不要", later: "之後再說（本版不做）" }[c.choice]}`).join("\n");
+    return `【會議摘要】${m.summary}\n【已形成決策】\n${(m.decisions || []).map((d) => "- " + d).join("\n")}\n【分歧（以決策與總監確認為準）】\n${(m.disagreements || []).map((d) => "- " + d).join("\n")}\n【總監確認】\n${conf || "（無）"}\n【總監補充】${state.note || "（無）"}`;
+  }
+  const FILE_RULES = `輸出規則（務必遵守）：
+1. 只產出純前端靜態網頁：index.html、style.css、game.js 三個檔案，不得使用任何外部 CDN、套件、圖片或音檔檔案（美術用 Canvas 繪製，音效可用 Web Audio 合成）。
+2. index.html 以 <link rel="stylesheet" href="style.css"> 與 <script src="game.js"><\/script> 引用另外兩個檔案。
+3. 必須同時支援鍵盤與手機觸控（畫面上要有觸控按鈕），在 390px 寬的手機直式畫面能完整遊玩。
+4. 每個檔案都用以下格式完整輸出，不要省略任何內容，不要使用 markdown 程式碼區塊：
+<<<FILE 檔名>>>
+（完整檔案內容）
+<<<END>>>`;
+
+  function parseFiles(text) {
+    const out = {}; const re = /<<<FILE\s+([^>\s]+)\s*>>>\s*\n([\s\S]*?)\n?<<<END>>>/g; let m;
+    while ((m = re.exec(text))) out[m[1].trim()] = m[2].replace(/^```[a-z]*\n|\n```$/g, "");
+    return out;
+  }
+  function parseJson(text) {
+    const m = text.match(/\{[\s\S]*\}/); if (!m) return null;
+    try { return JSON.parse(m[0]); } catch { return null; }
+  }
+
+  // ---------- automated play test ----------
+  function buildDoc(files, probe) {
+    let html = files["index.html"] || "<!doctype html><html><body><p>缺少 index.html</p></body></html>";
+    if (files["style.css"]) html = html.replace(/<link[^>]*href=["']\.?\/?style\.css["'][^>]*>/i, () => `<style>\n${files["style.css"]}\n</style>`);
+    if (files["game.js"]) html = html.replace(/<script[^>]*src=["']\.?\/?game\.js["'][^>]*>\s*<\/script>/i, () => `<script>\n${files["game.js"].replace(/<\/script/gi, "<\\/script")}\n<\/script>`);
+    if (!probe) return html;
+    const catcher = `<script>(function(){var E=[];function post(t,d){parent.postMessage({__studio:1,type:t,data:d},"*")}
+window.addEventListener("error",function(e){E.push(String(e.message)+" @"+(e.lineno||"?"));post("err",E)});
+window.addEventListener("unhandledrejection",function(e){E.push("Promise: "+String(e.reason));post("err",E)});
+window.addEventListener("load",function(){setTimeout(function(){try{
+ ["ArrowLeft","ArrowRight","ArrowDown","ArrowUp"," "].forEach(function(k){document.dispatchEvent(new KeyboardEvent("keydown",{key:k,code:k===" "?"Space":k,bubbles:true}));window.dispatchEvent(new KeyboardEvent("keydown",{key:k,bubbles:true}))});
+ var btns=[].slice.call(document.querySelectorAll("button"));btns.slice(0,3).forEach(function(b){try{b.click()}catch(x){E.push("按鈕點擊錯誤: "+x.message)}});
+}catch(x){E.push(String(x))}
+setTimeout(function(){var c=document.querySelector("canvas"),painted=false;
+ if(c){try{var g=c.getContext("2d"),d=g.getImageData(0,0,c.width,c.height).data;for(var i=3;i<d.length;i+=40){if(d[i]){painted=true;break}}}catch(x){painted=true}}
+ post("done",{errors:E,canvas:!!c,painted:painted,buttons:document.querySelectorAll("button").length})},1500)},800)})})();<\/script>`;
+    return /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, (h) => h + catcher) : catcher + html;
+  }
+  function playTest(files) {
+    return new Promise((resolve) => {
+      const f = document.createElement("iframe");
+      f.setAttribute("sandbox", "allow-scripts"); f.style.cssText = "position:fixed;left:-2000px;top:0;width:390px;height:740px";
+      let last = { errors: [], canvas: false, painted: false, buttons: 0, timeout: true };
+      const onMsg = (e) => { if (e.source !== f.contentWindow || !e.data || !e.data.__studio) return;
+        if (e.data.type === "err") last.errors = e.data.data;
+        if (e.data.type === "done") { last = { ...e.data.data, timeout: false }; finish(); } };
+      const finish = () => { window.removeEventListener("message", onMsg); clearTimeout(t); f.remove(); resolve(last); };
+      const t = setTimeout(finish, 9000);
+      window.addEventListener("message", onMsg);
+      document.body.appendChild(f);
+      f.srcdoc = buildDoc(files, true);
+    });
+  }
+  function runtimeProblems(r) {
+    const p = [...(r.errors || [])];
+    if (r.timeout) p.push("頁面在 9 秒內沒有完成載入（可能無限迴圈或卡住）。");
+    if (!r.canvas) p.push("找不到 <canvas> 遊戲畫面。");
+    else if (!r.painted) p.push("Canvas 沒有畫出任何東西。");
+    if (!r.buttons) p.push("畫面上沒有任何觸控按鈕。");
+    return p;
+  }
+
+  // ---------- pipeline ----------
+  let busy = false;
+  async function stage(id, fn) {
+    setStage(id, "run");
+    try { const r = await fn(); setStage(id, r === false ? "fail" : "done"); return r; }
+    catch (e) { setStage(id, "fail"); throw e; }
+  }
+
+  async function writeCode(mode, issues) {
+    const sys = "你是 AI 辦公室的程式工程師「阿碼」，專精 HTML5 Canvas 網頁遊戲。你寫的程式必須能直接在瀏覽器執行、沒有錯誤、可以完整遊玩。";
+    const base = `${briefing()}\n\n【規格書（小橘）】\n${state.spec}\n\n${FILE_RULES}`;
+    const prompt = mode === "new" ? `請依照上面的決策與規格，完成第一版可遊玩的遊戲。\n\n${base}`
+      : `${base}\n\n【目前版本的程式】\n${Object.entries(state.files).filter(([n]) => n !== "README.md").map(([n, c]) => `<<<FILE ${n}>>>\n${c}\n<<<END>>>`).join("\n")}\n\n【必須修正的問題】\n${issues.map((x) => "- " + x).join("\n")}\n\n請修正所有問題，並完整輸出三個檔案的最新版本。`;
+    const r = await gemini(sys, prompt);
+    const files = parseFiles(r.text);
+    const missing = ["index.html", "style.css", "game.js"].filter((n) => !files[n]);
+    if (missing.length) throw new Error(`阿碼的輸出缺少 ${missing.join("、")}${r.truncated ? "（回應被截斷）" : ""}，請按「再修一輪」重試。`);
+    state.files = { ...files, "README.md": state.files["README.md"] || "" };
+    state.version += 1; persist();
+    log("阿碼", `產出 v${state.version}（${r.model}）：${Object.keys(files).map((n) => `${n} ${files[n].split("\n").length} 行`).join("、")}`);
+  }
+
+  async function testAndReview() {
+    const rt = await stage("test", async () => {
+      log("系統", "在手機尺寸的沙盒中自動載入並操作遊戲…");
+      const res = await playTest(state.files); state.runtime = res;
+      const p = runtimeProblems(res);
+      log("系統", p.length ? `發現 ${p.length} 個執行問題：${p.join("；")}` : `執行正常：有畫面、${res.buttons} 個按鈕、無錯誤`, p.length ? "err" : "ok");
+      return p.length ? false : true;
+    });
+    const rv = await stage("review", async () => {
+      const sys = "你是 AI 辦公室的處女座品質監督「小處」。你依據決策與規格逐項驗收，只回傳 JSON。";
+      const prompt = `${briefing()}\n\n【規格書】\n${state.spec}\n\n【自動試玩結果】\n${JSON.stringify(state.runtime)}\n\n【程式】\n${Object.entries(state.files).filter(([n]) => n !== "README.md").map(([n, c]) => `--- ${n} ---\n${c}`).join("\n")}\n\n請驗收：已形成決策是否都有實作、總監說「不要/之後再說」的項目是否沒有做、手機觸控能否完整遊玩、程式有無明顯錯誤。\n只輸出 JSON：{"pass": true 或 false, "issues": ["具體問題與修正方式", ...], "summary": "一句話結論"}。只有嚴重或明顯未實作的問題才列入 issues，最多 6 點。`;
+      const r = await gemini(sys, prompt);
+      const j = parseJson(r.text) || { pass: false, issues: ["審查回應無法解析，請重新審查。"], summary: r.text.slice(0, 120) };
+      state.review = j; persist();
+      log("小處", `${j.pass ? "✓ 通過" : "✗ 未通過"}：${j.summary || ""}${(j.issues || []).length ? "｜" + j.issues.join("；") : ""}`, j.pass ? "ok" : "err");
+      return !!j.pass;
+    });
+    return { runtimeOk: rt !== false, reviewOk: rv !== false };
+  }
+
+  async function fixLoop() {
+    while (state.fixRounds < MAX_FIX_ROUNDS) {
+      const issues = [...runtimeProblems(state.runtime || {}), ...((state.review && !state.review.pass && state.review.issues) || [])];
+      if (!issues.length) return true;
+      state.fixRounds += 1; persist();
+      log("阿碼", `第 ${state.fixRounds} 輪修正，處理 ${issues.length} 個問題…`);
+      await stage("code", () => writeCode("fix", issues));
+      const r = await testAndReview();
+      if (r.runtimeOk && r.reviewOk) return true;
+    }
+    return false;
+  }
+
+  async function runAll() {
+    if (busy) return; busy = true; renderButtons();
+    state.note = $("directorNote").value.trim(); state.fixRounds = 0; state.stages = {}; persist(); renderPipe();
+    syncOfficeTask("進行中", 10, "小橘拆解規格中");
+    try {
+      log("總監", "核准決策，產線開工。");
+      await stage("spec", async () => {
+        const sys = "你是 AI 辦公室的策劃「小橘」，負責把會議決策轉成工程師能直接實作的規格書。用繁體中文、Markdown。";
+        const r = await gemini(sys, `${briefing()}\n\n請寫出遊戲規格書，包含：遊戲名稱、核心玩法、操作方式（鍵盤＋手機觸控按鈕）、計分與連擊規則、難度/速度分級、美術風格（純 Canvas 繪製）、畫面配置、本版不做的項目（依總監確認），以及「驗收清單」（可逐項檢查的條目）。控制在 60 行內。`);
+        state.spec = r.text.trim(); persist();
+        log("小橘", `規格書完成（${state.spec.split("\n").length} 行）。`);
+      });
+      syncOfficeTask("進行中", 35, "阿碼撰寫程式中");
+      await stage("code", () => writeCode("new"));
+      syncOfficeTask("進行中", 60, "自動試玩與審查中");
+      const r = await testAndReview();
+      let ok = r.runtimeOk && r.reviewOk;
+      if (!ok) ok = await fixLoop();
+      state.files["README.md"] = buildReadme(); persist();
+      syncOfficeTask(ok ? "待審核" : "需修改", ok ? 90 : 75, ok ? "成品完成，等總監試玩與發布" : "仍有問題，請總監試玩後決定");
+      log("系統", ok ? "✓ 成品完成！請在下方試玩，確認後推送到 GitHub。" : "已達自動修正上限，仍有問題。你可以先試玩，或按「再修一輪」。", ok ? "ok" : "err");
+      currentTab = "preview";
+    } catch (e) {
+      log("系統", e.message || String(e), "err");
+    } finally { busy = false; renderAll(); }
+  }
+
+  async function fixOnce() {
+    if (busy) return; busy = true; renderButtons();
+    try {
+      const extra = prompt("想讓阿碼修什麼？（留空＝依小處的審查意見修正）") || "";
+      const issues = [...runtimeProblems(state.runtime || {}), ...((state.review && state.review.issues) || [])];
+      if (extra.trim()) issues.unshift("總監指示：" + extra.trim());
+      if (!issues.length) issues.push("請整體檢查並改善遊戲體驗與穩定度。");
+      await stage("code", () => writeCode("fix", issues));
+      await testAndReview();
+      state.files["README.md"] = buildReadme(); persist();
+    } catch (e) { log("系統", e.message || String(e), "err"); }
+    finally { busy = false; renderAll(); }
+  }
+
+  function buildReadme() {
+    const m = state.meeting;
+    return `# ${(state.spec.match(/^#+\s*(.+)$/m) || [, "AI 辦公室遊戲專案"])[1]}\n\n> 由「無所事事辦公室」AI 團隊依會議決策自動製作（v${state.version}）。\n\n## 會議決策\n${(m.decisions || []).map((d) => "- " + d).join("\n")}\n\n## 總監確認\n${state.confirmations.map((c) => `- ${c.q}：${{ yes: "同意", no: "不要", later: "之後再說" }[c.choice] || "未回答"}`).join("\n") || "- 無"}\n\n## 規格書\n${state.spec}\n\n## 品質審查（小處）\n${state.review ? `${state.review.pass ? "✓ 通過" : "✗ 未通過"}：${state.review.summary || ""}\n${(state.review.issues || []).map((x) => "- " + x).join("\n")}` : "尚未審查"}\n`;
+  }
+
+  // ---------- write progress back to the office task wall ----------
+  function syncOfficeTask(status, progress, stepLabel) {
+    try {
+      const office = load(LS_OFFICE, null); if (!office || !Array.isArray(office.tasks)) return;
+      const title = "遊戲專案：" + ((state.spec.match(/^#+\s*(.+)$/m) || [])[1] || (state.meeting.summary || "").slice(0, 18));
+      const task = { id: "studio-game", title, goal: state.meeting.summary || "", ownerId: "engineer", status, progress,
+        steps: STAGES.map((s) => ({ label: `${s.who} ${s.label}`, done: state.stages[s.id] === "done" })), attachments: ["studio.html"], due: "今天" };
+      const i = office.tasks.findIndex((t) => t.id === "studio-game");
+      if (i >= 0) office.tasks[i] = task; else office.tasks.unshift(task);
+      office.agents = (office.agents || []).map((a) => a.id === "engineer" ? { ...a, taskId: "studio-game", status: status === "進行中" ? "coding" : "reviewing", bubble: "🏭 " + stepLabel } : a);
+      office.events = [{ id: "studio-" + Date.now(), time: now().slice(0, 5), type: "handoff", agentId: "engineer", summary: "專案產線：" + stepLabel, detail: title }, ...(office.events || [])].slice(0, 50);
+      localStorage.setItem(LS_OFFICE, JSON.stringify(office));
+    } catch {}
+  }
+
+  // ---------- GitHub ----------
+  const b64 = (s) => { const bytes = new TextEncoder().encode(s); let bin = ""; for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(bin); };
+  async function gh(token, method, path, body) {
+    const r = await fetch("https://api.github.com" + path, { method, headers: { Authorization: "Bearer " + token, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", ...(body ? { "Content-Type": "application/json" } : {}) }, body: body ? JSON.stringify(body) : undefined });
+    const d = await r.json().catch(() => ({}));
+    return { ok: r.ok, status: r.status, d };
+  }
+  async function push() {
+    const owner = $("ghOwner").value.trim(), repo = $("ghRepo").value.trim(), token = $("ghToken").value.trim();
+    if (!owner || !repo || !token) { $("pushLine").textContent = "請填寫帳號、Repo 名稱和 Token。"; return; }
+    if (!state.review || !state.review.pass) { if (!confirm("小處的審查還沒通過，確定要發布目前版本嗎？")) return; }
+    save(LS_GH, { owner, repo }); localStorage.setItem(LS_GH_TOKEN, token);
+    busy = true; renderButtons(); setStage("ship", "run");
+    const line = (t) => { $("pushLine").innerHTML = t; };
+    try {
+      let rr = await gh(token, "GET", `/repos/${owner}/${repo}`);
+      if (rr.status === 404) {
+        line("找不到這個 repo，嘗試自動建立…");
+        const c = await gh(token, "POST", "/user/repos", { name: repo, auto_init: true, description: "由無所事事辦公室 AI 團隊製作的網頁遊戲" });
+        if (!c.ok) throw new Error(`無法自動建立 repo（${c.status}）。請先在 GitHub 手動建立「${repo}」，並確認 Token 有授權這個 repo。`);
+        rr = await gh(token, "GET", `/repos/${owner}/${repo}`);
+      }
+      if (!rr.ok) throw new Error(rr.status === 401 ? "Token 無效或已過期。" : `無法讀取 repo（${rr.status}）：${rr.d.message || ""}`);
+      const branch = rr.d.default_branch || "main";
+      const names = Object.keys(state.files);
+      for (const name of names) {
+        line(`上傳 ${esc(name)}…`);
+        const cur = await gh(token, "GET", `/repos/${owner}/${repo}/contents/${encodeURIComponent(name)}?ref=${branch}`);
+        const body = { message: `AI 辦公室產線 v${state.version}：更新 ${name}`, content: b64(state.files[name]), branch };
+        if (cur.ok && cur.d.sha) body.sha = cur.d.sha;
+        let p = await gh(token, "PUT", `/repos/${owner}/${repo}/contents/${encodeURIComponent(name)}`, body);
+        if (!p.ok && p.status === 404 && !cur.ok) { delete body.branch; p = await gh(token, "PUT", `/repos/${owner}/${repo}/contents/${encodeURIComponent(name)}`, body); }
+        if (!p.ok) throw new Error(`上傳 ${name} 失敗（${p.status}）：${p.d.message || ""}${p.status === 403 ? "。請確認 Token 有 Contents 讀寫權限。" : ""}`);
+      }
+      line("設定 GitHub Pages…");
+      let pages = await gh(token, "GET", `/repos/${owner}/${repo}/pages`);
+      if (pages.status === 404) pages = await gh(token, "POST", `/repos/${owner}/${repo}/pages`, { source: { branch, path: "/" } });
+      const repoUrl = `https://github.com/${owner}/${repo}`;
+      const siteUrl = (pages.ok && pages.d.html_url) || `https://${owner}.github.io/${repo}/`;
+      state.lastPush = { at: new Date().toISOString(), version: state.version, repoUrl, siteUrl }; persist();
+      setStage("ship", "done");
+      syncOfficeTask("已核准", 100, "已發布到 GitHub");
+      log("總監", `v${state.version} 已推送到 ${repoUrl}`, "ok");
+      line(`✓ 已推送 v${state.version}。<br>程式碼：<a class="ext" href="${repoUrl}" target="_blank" rel="noopener">${repoUrl}</a><br>遊戲網址（第一次約需 1–2 分鐘生效）：<a class="ext" href="${siteUrl}" target="_blank" rel="noopener">${siteUrl}</a>` +
+        (pages.ok ? "" : `<br><span class="muted">⚠ 無法自動開啟 Pages（${pages.status}）。請到 repo 的 Settings → Pages，Source 選「Deploy from a branch」→ ${branch} / root。</span>`));
+    } catch (e) { setStage("ship", "fail"); line("✗ " + esc(e.message || e)); log("系統", e.message || String(e), "err"); }
+    finally { busy = false; renderButtons(); }
+  }
+
+  // ---------- wire up ----------
+  const g = load(LS_GH, {}); $("ghOwner").value = g.owner || "szhu72"; $("ghRepo").value = g.repo || ""; $("ghToken").value = localStorage.getItem(LS_GH_TOKEN) || "";
+  $("directorNote").oninput = (e) => { if (state) { state.note = e.target.value; persist(); } };
+  $("runBtn").onclick = runAll; $("fixBtn").onclick = fixOnce; $("pushBtn").onclick = push;
+  $("forgetBtn").onclick = () => { localStorage.removeItem(LS_GH_TOKEN); $("ghToken").value = ""; $("pushLine").textContent = "已清除 Token。"; };
+  $("resetBtn").onclick = () => { if (!state || confirm("清除目前的規格、程式和紀錄，重新開始？")) { const m = readMeeting(); state = m ? freshState(m) : null; persist(); renderAll(); } };
+  window.addEventListener("beforeunload", (e) => { if (busy) { e.preventDefault(); e.returnValue = ""; } });
+  if (state && state.lastPush) $("pushLine").innerHTML = `上次發布 v${state.lastPush.version}：<a class="ext" href="${state.lastPush.siteUrl}" target="_blank" rel="noopener">${state.lastPush.siteUrl}</a>`;
+  if (state) { Object.keys(state.stages).forEach((k) => { if (state.stages[k] === "run") state.stages[k] = "fail"; }); persist(); }
+  renderAll();
+})();
+</script>
+</body>
+</html>

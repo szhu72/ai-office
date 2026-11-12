@@ -3197,11 +3197,16 @@ function GamePopupModal({
                 type="button"
                 className="primary-button"
                 onClick={() => {
-                  onApprove();
-                  onClose();
+                  // 會議決策交給「專案產線」實際分工、寫程式、試玩、審查與發布
+                  try {
+                    localStorage.setItem("aioffice_studio_handoff", JSON.stringify(office.meeting));
+                  } catch {
+                    /* storage unavailable */
+                  }
+                  window.location.href = "./studio.html";
                 }}
               >
-                ✓ 核准決策並繼續推進 <span>→</span>
+                ✓ 核准決策並開始製作 <span>→</span>
               </button>
             </div>
           </>
