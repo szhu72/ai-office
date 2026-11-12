@@ -261,6 +261,10 @@
    - 遊戲盤面依可用空間等比例縮放（用 JS 在 resize 與 visualViewport resize 時計算寬高），不可寫死像素尺寸，避免中間出現大片空白。
    - Canvas 依 devicePixelRatio（上限 3）放大內部解析度，再用 setTransform 以邏輯座標繪製，畫面要清晰不模糊。
    - 底部加上 env(safe-area-inset-bottom) 內距。
+   遊戲操作規範（方塊類遊戲必須遵守）：
+   - 盤面要有淡色格線，並用虛線外框顯示方塊直接落下後的位置（落點預覽）。
+   - 要有「⏸ 暫停 / ▶ 繼續」按鈕（鍵盤 P 或 Esc 也可），切到別的 App 或分頁時自動暫停，暫停中所有操作與下落都停止。
+   - 長按左右鍵：先等約 220ms 才開始連續移動，之後每約 140ms 一格；觸控要處理 touchstart、touchend、touchcancel。
 4. 每個檔案都用以下格式完整輸出，不要省略任何內容，不要使用 markdown 程式碼區塊：
 <<<FILE 檔名>>>
 （完整檔案內容）
