@@ -94,6 +94,7 @@
     <label for="ghToken">Token</label><input type="password" id="ghToken" placeholder="github_pat_…" autocomplete="off" />
     <div class="row">
       <button class="primary" id="pushBtn">⬆ 推送並發布</button>
+      <button id="pullBtn">⬇ 從 GitHub 載入最新版</button>
       <button id="forgetBtn">清除 Token</button>
     </div>
     <p class="muted" id="pushLine"></p>
@@ -197,6 +198,7 @@
     $("fixBtn").disabled = !hasFiles || busy;
     $("resetBtn").disabled = busy;
     $("pushBtn").disabled = !hasFiles || busy;
+    $("pullBtn").disabled = busy;
     $("statusLine").textContent = !state ? "" : !allAnswered ? "請先回答每一項「總監確認」，產線才能開工。" : busy ? "產線運作中，請不要關閉這個頁面…" : "";
     const k = (localStorage.getItem(LS_KEY) || "").trim();
     $("keyState").textContent = k ? "Gemini ✓" : "缺 Gemini Key";
@@ -253,7 +255,12 @@
   const FILE_RULES = `輸出規則（務必遵守）：
 1. 只產出純前端靜態網頁：index.html、style.css、game.js 三個檔案，不得使用任何外部 CDN、套件、圖片或音檔檔案（美術用 Canvas 繪製，音效可用 Web Audio 合成）。
 2. index.html 以 <link rel="stylesheet" href="style.css"> 與 <script src="game.js"><\/script> 引用另外兩個檔案。
-3. 必須同時支援鍵盤與手機觸控（畫面上要有觸控按鈕），在 390px 寬的手機直式畫面能完整遊玩。
+3. 必須同時支援鍵盤與手機觸控（畫面上要有觸控按鈕），在 360–430px 寬的手機直式畫面能完整遊玩。
+   手機版面規範（必須遵守）：
+   - 最外層容器高度用 100dvh（不要只用 100vh），display:flex; flex-direction:column；遊戲區 flex:1 1 auto 且 min-height:0；觸控按鈕區 flex:0 0 auto，確保按鈕永遠在可見範圍內，不可被擠出畫面。
+   - 遊戲盤面依可用空間等比例縮放（用 JS 在 resize 與 visualViewport resize 時計算寬高），不可寫死像素尺寸，避免中間出現大片空白。
+   - Canvas 依 devicePixelRatio（上限 3）放大內部解析度，再用 setTransform 以邏輯座標繪製，畫面要清晰不模糊。
+   - 底部加上 env(safe-area-inset-bottom) 內距。
 4. 每個檔案都用以下格式完整輸出，不要省略任何內容，不要使用 markdown 程式碼區塊：
 <<<FILE 檔名>>>
 （完整檔案內容）
@@ -280,17 +287,21 @@ window.addEventListener("error",function(e){E.push(String(e.message)+" @"+(e.lin
 window.addEventListener("unhandledrejection",function(e){E.push("Promise: "+String(e.reason));post("err",E)});
 window.addEventListener("load",function(){setTimeout(function(){try{
  ["ArrowLeft","ArrowRight","ArrowDown","ArrowUp"," "].forEach(function(k){document.dispatchEvent(new KeyboardEvent("keydown",{key:k,code:k===" "?"Space":k,bubbles:true}));window.dispatchEvent(new KeyboardEvent("keydown",{key:k,bubbles:true}))});
- var btns=[].slice.call(document.querySelectorAll("button"));btns.slice(0,3).forEach(function(b){try{b.click()}catch(x){E.push("按鈕點擊錯誤: "+x.message)}});
+ function vis(b){var r=b.getBoundingClientRect();return r.width>0&&r.height>0&&getComputedStyle(b).visibility!=="hidden"}
+ var btns=[].slice.call(document.querySelectorAll("button")).filter(function(b){return vis(b)&&!/重新|重來|再玩|restart|reset|reload|上傳|submit|分享/i.test(b.textContent||"")});
+ btns.slice(0,4).forEach(function(b){try{b.click()}catch(x){E.push("按鈕點擊錯誤: "+x.message)}});
 }catch(x){E.push(String(x))}
-setTimeout(function(){var c=document.querySelector("canvas"),painted=false;
- if(c){try{var g=c.getContext("2d"),d=g.getImageData(0,0,c.width,c.height).data;for(var i=3;i<d.length;i+=40){if(d[i]){painted=true;break}}}catch(x){painted=true}}
- post("done",{errors:E,canvas:!!c,painted:painted,buttons:document.querySelectorAll("button").length})},1500)},800)})})();<\/script>`;
+function isPainted(c){try{var g=c.getContext("2d"),d=g.getImageData(0,0,c.width,c.height).data;for(var i=3;i<d.length;i+=40){if(d[i])return true}return false}catch(x){return true}}
+function finish(){var c=document.querySelector("canvas"),painted=c?isPainted(c):false;
+ var off=[].slice.call(document.querySelectorAll("button")).filter(function(b){var r=b.getBoundingClientRect();return r.width&&r.height&&(r.bottom>innerHeight+1||r.right>innerWidth+1)}).map(function(b){return (b.textContent||"").trim().slice(0,8)});
+ post("done",{errors:E,canvas:!!c,painted:painted,buttons:[].slice.call(document.querySelectorAll("button")).filter(vis).length,offscreen:off,scrollH:document.documentElement.scrollHeight>innerHeight+2})}
+setTimeout(function(){var c=document.querySelector("canvas");if(c&&!isPainted(c)){setTimeout(finish,1500)}else{finish()}},1500)},800)})})();<\/script>`;
     return /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, (h) => h + catcher) : catcher + html;
   }
   function playTest(files) {
     return new Promise((resolve) => {
       const f = document.createElement("iframe");
-      f.setAttribute("sandbox", "allow-scripts"); f.style.cssText = "position:fixed;left:-2000px;top:0;width:390px;height:740px";
+      f.setAttribute("sandbox", "allow-scripts"); f.style.cssText = "position:fixed;left:0;top:0;width:390px;height:740px;opacity:0.01;pointer-events:none;z-index:-1;border:0"; // 留在可視範圍內，避免瀏覽器暫停畫面外 iframe 的動畫
       let last = { errors: [], canvas: false, painted: false, buttons: 0, timeout: true };
       const onMsg = (e) => { if (e.source !== f.contentWindow || !e.data || !e.data.__studio) return;
         if (e.data.type === "err") last.errors = e.data.data;
@@ -308,6 +319,7 @@ setTimeout(function(){var c=document.querySelector("canvas"),painted=false;
     if (!r.canvas) p.push("找不到 <canvas> 遊戲畫面。");
     else if (!r.painted) p.push("Canvas 沒有畫出任何東西。");
     if (!r.buttons) p.push("畫面上沒有任何觸控按鈕。");
+    if ((r.offscreen || []).length) p.push(`在手機畫面（390x740）中，這些按鈕超出可見範圍：${r.offscreen.join("、")}。請依手機版面規範改用 100dvh 與 flex 版面。`);
     return p;
   }
 
@@ -336,7 +348,11 @@ setTimeout(function(){var c=document.querySelector("canvas"),painted=false;
   async function testAndReview() {
     const rt = await stage("test", async () => {
       log("系統", "在手機尺寸的沙盒中自動載入並操作遊戲…");
-      const res = await playTest(state.files); state.runtime = res;
+      const res = await playTest(state.files);
+      // 靜態檢查：手機瀏覽器的網址列/工具列會蓋住 100vh 的底部，沙盒試玩測不出來
+      const css = (state.files["style.css"] || "") + (state.files["index.html"] || "");
+      if (/100vh/.test(css) && !/dvh|svh/.test(css)) res.errors = [...(res.errors || []), "版面高度只用 100vh，手機瀏覽器的網址列/工具列會把底部觸控按鈕擠出畫面，請改用 100dvh（保留 100vh 當備援）並採用 flex 版面。"];
+      state.runtime = res;
       const p = runtimeProblems(res);
       log("系統", p.length ? `發現 ${p.length} 個執行問題：${p.join("；")}` : `執行正常：有畫面、${res.buttons} 個按鈕、無錯誤`, p.length ? "err" : "ok");
       return p.length ? false : true;
@@ -450,6 +466,32 @@ setTimeout(function(){var c=document.querySelector("canvas"),painted=false;
     const d = await r.json().catch(() => ({}));
     return { ok: r.ok, status: r.status, d };
   }
+  const unb64 = (b) => new TextDecoder().decode(Uint8Array.from(atob(String(b).replace(/\s/g, "")), (ch) => ch.charCodeAt(0)));
+  async function pull() {
+    const owner = $("ghOwner").value.trim(), repo = $("ghRepo").value.trim(), token = $("ghToken").value.trim();
+    if (!owner || !repo) { $("pushLine").textContent = "請先填寫帳號和 Repo 名稱。"; return; }
+    if (!state) { $("pushLine").textContent = "請先從辦公室核准一份會議決策。"; return; }
+    busy = true; renderButtons();
+    try {
+      const auth = token ? token : null;
+      const call = async (path) => { const r = await fetch("https://api.github.com" + path, { headers: { Accept: "application/vnd.github+json", ...(auth ? { Authorization: "Bearer " + auth } : {}) } }); return { ok: r.ok, status: r.status, d: await r.json().catch(() => ({})) }; };
+      const rr = await call(`/repos/${owner}/${repo}`);
+      if (!rr.ok) throw new Error(`無法讀取 repo（${rr.status}）`);
+      const branch = rr.d.default_branch || "main";
+      const files = {}; const shas = {};
+      for (const name of ["index.html", "style.css", "game.js", "README.md"]) {
+        const c = await call(`/repos/${owner}/${repo}/contents/${name}?ref=${branch}`);
+        if (c.ok && c.d.content) { files[name] = unb64(c.d.content); shas[name] = c.d.sha; }
+      }
+      if (!files["index.html"]) throw new Error("repo 裡找不到 index.html。");
+      state.files = files; state.remoteShas = shas; state.version += 1; state.review = null; state.runtime = null; persist();
+      log("系統", `已從 GitHub 載入最新版（${Object.keys(files).join("、")}），存成 v${state.version}。之後的修正會以這一版為基礎。`, "ok");
+      $("pushLine").textContent = `✓ 已載入 GitHub 上的最新版本（v${state.version}）。`;
+      currentTab = "preview";
+    } catch (e) { $("pushLine").textContent = "✗ " + (e.message || e); }
+    finally { busy = false; renderAll(); }
+  }
+
   async function push() {
     const owner = $("ghOwner").value.trim(), repo = $("ghRepo").value.trim(), token = $("ghToken").value.trim();
     if (!owner || !repo || !token) { $("pushLine").textContent = "請填寫帳號、Repo 名稱和 Token。"; return; }
@@ -468,6 +510,17 @@ setTimeout(function(){var c=document.querySelector("canvas"),painted=false;
       if (!rr.ok) throw new Error(rr.status === 401 ? "Token 無效或已過期。" : `無法讀取 repo（${rr.status}）：${rr.d.message || ""}`);
       const branch = rr.d.default_branch || "main";
       const names = Object.keys(state.files);
+      // 覆蓋保護：GitHub 上的檔案若在產線之外被修改過（例如手動修正），先確認
+      const changed = [];
+      for (const name of names) {
+        const cur = await gh(token, "GET", `/repos/${owner}/${repo}/contents/${encodeURIComponent(name)}?ref=${branch}`);
+        const known = (state.remoteShas || {})[name];
+        if (cur.ok && cur.d.sha && cur.d.sha !== known) changed.push(name);
+      }
+      if (changed.length && !confirm(`GitHub 上的 ${changed.join("、")} 和產線記得的版本不同（可能在產線外被修改過）。\n推送會覆蓋那些修改。\n\n建議按「取消」，再按「⬇ 從 GitHub 載入最新版」。確定仍要覆蓋嗎？`)) {
+        throw new Error("已取消推送。請先「從 GitHub 載入最新版」，再請阿碼修正。");
+      }
+      const newShas = {};
       for (const name of names) {
         line(`上傳 ${esc(name)}…`);
         const cur = await gh(token, "GET", `/repos/${owner}/${repo}/contents/${encodeURIComponent(name)}?ref=${branch}`);
@@ -475,6 +528,7 @@ setTimeout(function(){var c=document.querySelector("canvas"),painted=false;
         if (cur.ok && cur.d.sha) body.sha = cur.d.sha;
         let p = await gh(token, "PUT", `/repos/${owner}/${repo}/contents/${encodeURIComponent(name)}`, body);
         if (!p.ok && p.status === 404 && !cur.ok) { delete body.branch; p = await gh(token, "PUT", `/repos/${owner}/${repo}/contents/${encodeURIComponent(name)}`, body); }
+        if (p.ok && p.d && p.d.content && p.d.content.sha) newShas[name] = p.d.content.sha;
         if (!p.ok) throw new Error(`上傳 ${name} 失敗（${p.status}）：${p.d.message || ""}${p.status === 403 ? "。請確認 Token 有 Contents 讀寫權限。" : ""}`);
       }
       line("設定 GitHub Pages…");
@@ -482,6 +536,7 @@ setTimeout(function(){var c=document.querySelector("canvas"),painted=false;
       if (pages.status === 404) pages = await gh(token, "POST", `/repos/${owner}/${repo}/pages`, { source: { branch, path: "/" } });
       const repoUrl = `https://github.com/${owner}/${repo}`;
       const siteUrl = (pages.ok && pages.d.html_url) || `https://${owner}.github.io/${repo}/`;
+      state.remoteShas = { ...(state.remoteShas || {}), ...newShas };
       state.lastPush = { at: new Date().toISOString(), version: state.version, repoUrl, siteUrl }; persist();
       setStage("ship", "done");
       syncOfficeTask("已核准", 100, "已發布到 GitHub");
@@ -495,7 +550,7 @@ setTimeout(function(){var c=document.querySelector("canvas"),painted=false;
   // ---------- wire up ----------
   const g = load(LS_GH, {}); $("ghOwner").value = g.owner || "szhu72"; $("ghRepo").value = g.repo || ""; $("ghToken").value = localStorage.getItem(LS_GH_TOKEN) || "";
   $("directorNote").oninput = (e) => { if (state) { state.note = e.target.value; persist(); } };
-  $("runBtn").onclick = () => runAll(false); $("resumeBtn").onclick = () => runAll(true); $("fixBtn").onclick = fixOnce; $("pushBtn").onclick = push;
+  $("runBtn").onclick = () => runAll(false); $("resumeBtn").onclick = () => runAll(true); $("fixBtn").onclick = fixOnce; $("pushBtn").onclick = push; $("pullBtn").onclick = pull;
   $("forgetBtn").onclick = () => { localStorage.removeItem(LS_GH_TOKEN); $("ghToken").value = ""; $("pushLine").textContent = "已清除 Token。"; };
   $("resetBtn").onclick = () => { if (!state || confirm("清除目前的規格、程式和紀錄，重新開始？")) { const m = readMeeting(); state = m ? freshState(m) : null; persist(); renderAll(); } };
   window.addEventListener("beforeunload", (e) => { if (busy) { e.preventDefault(); e.returnValue = ""; } });
